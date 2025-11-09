@@ -12,29 +12,32 @@ export interface FormMedicine {
   instructions?: string;
   notes?: string;
   prescriptionId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Prescription {
   id: string;
+  userId?: string; // Made optional since some components create prescriptions without userId
   title?: string;
   patientName: string;
-  patientAge?: string;
-  patientGender?: string;
-  patientPhone?: string;
-  patientAddress?: string;
+  patientAge?: string | null;
+  patientGender?: string | null;
+  patientPhone?: string | null;
+  patientAddress?: string | null;
   diagnosis: string;
-  prescription: FormMedicine[];
-  chiefComplaint?: string;
+  medicines: FormMedicine[];
+  chiefComplaint?: string | null; // Made consistent with database schema
   historyOfPresentIllness?: string;
   physicalExamination?: string;
   differentialDiagnosis?: string;
   pulseRate?: string;
   bloodPressure?: string;
-  temperature?: string;
+  temperature?: string | null;
   respiratoryRate?: string;
   oxygenSaturation?: string;
-  allergies: string[];
-  currentMedications: string[];
+  allergies: string[]; // Made consistent with database schema (jsonb type)
+  currentMedications: string[]; // Made consistent with database schema (jsonb type)
   pastMedicalHistory?: string;
   familyHistory?: string;
   socialHistory?: string;
@@ -46,16 +49,16 @@ export interface Prescription {
   clinicName?: string;
   clinicAddress?: string;
   doctorFree?: string; // Doctor free amount/charge
-  prescriptionDate: string;
+  prescriptionDate: string | Date; // Made consistent with database schema
   prescriptionNumber?: string;
   source?: string;
   status?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string; // Made optional since some components create prescriptions without createdAt
+  updatedAt?: string; // Made optional since some components create prescriptions without updatedAt
   aiConfidence?: string;
   aiModelUsed?: string;
   processingTime?: number;
-  rawAiResponse?: any;
+  rawAiResponse?: unknown;
 }
 
 export interface AutocompleteResponse {

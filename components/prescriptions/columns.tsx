@@ -3,11 +3,16 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Prescription } from "../../types/prescription";
+import {
+  Prescription as DbPrescription,
+  Medicine as DbMedicine,
+} from "../../db/schema";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
-import { downloadPrescriptionPDFLegacy as downloadPrescriptionPDF } from "../../utils/generatePrescriptionPDF";
+import { format as formatJalali } from "date-fns-jalali";
+import { downloadPrescriptionPDF } from "../../utils/generatePrescriptionPDF";
 import { useState } from "react";
 
 interface ColumnsProps {
@@ -21,10 +26,81 @@ export const useColumns = ({
 }: ColumnsProps): ColumnDef<Prescription>[] => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  // Convert custom Prescription type to database Prescription type
+  const convertToDbPrescription = (
+    prescription: Prescription
+  ): DbPrescription & { medicines: DbMedicine[] } => {
+    // Ensure required string fields for notNull() database constraints
+    const safeUserId = prescription.userId || "unknown-user";
+    const safePatientName = prescription.patientName || "نامشخص";
+    const safeDiagnosis = prescription.diagnosis || "تشخیص نشده";
+    const safeDoctorName = prescription.doctorName || "دکتر";
+
+    return {
+      id: prescription.id,
+      userId: safeUserId,
+      patientName: safePatientName,
+      patientAge: prescription.patientAge || null,
+      patientGender: prescription.patientGender || null,
+      patientPhone: prescription.patientPhone || null,
+      patientAddress: prescription.patientAddress || null,
+      diagnosis: safeDiagnosis,
+      chiefComplaint: prescription.chiefComplaint || null,
+      historyOfPresentIllness: prescription.historyOfPresentIllness || null,
+      physicalExamination: prescription.physicalExamination || null,
+      differentialDiagnosis: prescription.differentialDiagnosis || null,
+      pulseRate: prescription.pulseRate || null,
+      bloodPressure: prescription.bloodPressure || null,
+      temperature: prescription.temperature || null,
+      respiratoryRate: prescription.respiratoryRate || null,
+      oxygenSaturation: prescription.oxygenSaturation || null,
+      allergies: prescription.allergies || [],
+      currentMedications: prescription.currentMedications || [],
+      pastMedicalHistory: prescription.pastMedicalHistory || null,
+      familyHistory: prescription.familyHistory || null,
+      socialHistory: prescription.socialHistory || null,
+      instructions: prescription.instructions || "",
+      followUp: prescription.followUp || null,
+      restrictions: prescription.restrictions || null,
+      doctorName: safeDoctorName,
+      doctorLicenseNumber: prescription.doctorLicenseNumber || null,
+      clinicName: prescription.clinicName || null,
+      clinicAddress: prescription.clinicAddress || null,
+      doctorFree: prescription.doctorFree || null,
+      prescriptionDate: new Date(prescription.prescriptionDate || new Date()),
+      prescriptionNumber: prescription.prescriptionNumber || null,
+      source: prescription.source || null,
+      status: prescription.status || "active",
+      createdAt: new Date(prescription.createdAt || Date.now()),
+      updatedAt: new Date(prescription.updatedAt || Date.now()),
+      aiConfidence: prescription.aiConfidence || null,
+      aiModelUsed: prescription.aiModelUsed || null,
+      processingTime: prescription.processingTime || null,
+      rawAiResponse: prescription.rawAiResponse || null,
+      medicines: prescription.medicines.map((med) => ({
+        id: med.id,
+        prescriptionId: med.prescriptionId,
+        medicine: med.medicine,
+        dosage: med.dosage,
+        form: med.form || null,
+        frequency: med.frequency,
+        duration: med.duration,
+        route: med.route || null,
+        timing: med.timing || null,
+        withFood: med.withFood || false,
+        instructions: med.instructions || null,
+        notes: med.notes || null,
+        createdAt: new Date(med.createdAt || Date.now()),
+        updatedAt: new Date(med.updatedAt || Date.now()),
+      })),
+    };
+  };
+
   const handleDownload = async (prescription: Prescription) => {
     try {
       setDownloadingId(prescription.id);
-      await downloadPrescriptionPDF(prescription);
+      const dbPrescription = convertToDbPrescription(prescription);
+      await downloadPrescriptionPDF(dbPrescription);
     } catch (error) {
       console.error("Failed to download PDF:", error);
     } finally {
@@ -86,7 +162,7 @@ export const useColumns = ({
         return (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span>{format(date, "yyyy/MM/dd", { locale: faIR })}</span>
+            <span>{formatJalali(date, "yyyy/MM/dd")}</span>
           </div>
         );
       },
@@ -104,8 +180,8 @@ export const useColumns = ({
       accessorKey: "medicines",
       header: "تعداد داروها",
       cell: ({ row }) => {
-        // Access the prescription field which contains the medicines array
-        const medicines = row.original.prescription || [];
+        // Access the medicines field which contains the medicines array
+        const medicines = row.original.medicines || [];
         return (
           <div className="text-center">
             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">

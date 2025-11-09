@@ -123,6 +123,7 @@ export default function DashboardClient({
     queryFn: fetchPrescriptions,
     staleTime: 5 * 60 * 1000,
     initialData: initialPrescriptions,
+    refetchOnMount: false, // Disable refetch on mount since we have initial data
   });
 
   // Mutation for saving prescriptions

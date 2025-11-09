@@ -3,48 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/components/dashboard-client";
 import { Prescription } from "@/types/prescription";
-
-async function getPrescriptions(): Promise<Prescription[]> {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    console.log("Fetching prescriptions from:", `${baseUrl}/api/prescriptions`);
-
-    const response = await fetch(`${baseUrl}/api/prescriptions`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    console.log("Response status:", response.status);
-
-    if (!response.ok) {
-      console.log("Response not OK, status:", response.status);
-      return [];
-    }
-
-    const result = await response.json();
-    console.log("Prescriptions API response:", result);
-
-    // Handle both response formats
-    if (result.data && Array.isArray(result.data.prescriptions)) {
-      return result.data.prescriptions;
-    } else if (Array.isArray(result.prescriptions)) {
-      return result.prescriptions;
-    } else if (Array.isArray(result.data)) {
-      return result.data;
-    } else if (Array.isArray(result)) {
-      return result;
-    }
-
-    console.log("No prescriptions array found in response");
-    return [];
-  } catch (error) {
-    console.error("Error fetching prescriptions:", error);
-    return [];
-  }
-}
+import { db } from "@/db/index";
+import { prescriptions, medicines } from "@/db/schema";
+import { eq, inArray, desc } from "drizzle-orm";
 
 export default async function HomePage() {
   const { userId } = await auth();
@@ -53,8 +14,46 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
-  const initialPrescriptions = await getPrescriptions();
-  console.log("Initial prescriptions count:", initialPrescriptions.length);
+  // Fetch initial prescriptions on server side for better UX
+  let initialPrescriptions: Prescription[] = [];
+
+  try {
+    // Get prescriptions for the user
+    const prescriptionsData = await db
+      .select({
+        prescription: prescriptions,
+        medicine: medicines,
+      })
+      .from(prescriptions)
+      .where(eq(prescriptions.userId, userId))
+      .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
+      .orderBy(desc(prescriptions.createdAt))
+      .limit(50); // Limit initial load
+
+    // Group prescriptions with their medicines
+    const groupedPrescriptions = prescriptionsData.reduce((acc, row) => {
+      const prescription = row.prescription;
+      const medicine = row.medicine;
+
+      if (!acc[prescription.id]) {
+        acc[prescription.id] = {
+          ...prescription,
+          medicines: [],
+        };
+      }
+
+      if (medicine) {
+        acc[prescription.id].medicines.push(medicine);
+      }
+
+      return acc;
+    }, {} as Record<string, any>);
+
+    initialPrescriptions = Object.values(groupedPrescriptions);
+  } catch (error) {
+    console.error("Error fetching initial prescriptions:", error);
+    // Continue with empty array if fetch fails
+  }
 
   return <DashboardClient initialPrescriptions={initialPrescriptions} />;
 }

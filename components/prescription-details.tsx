@@ -2,11 +2,15 @@
 "use client";
 
 import { Prescription, FormMedicine } from "@/types/prescription";
+import {
+  Prescription as DbPrescription,
+  Medicine as DbMedicine,
+} from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Download, Calendar, User, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
-import { downloadPrescriptionPDFLegacy as downloadPrescriptionPDF } from "@/utils/generatePrescriptionPDF";
+import { downloadPrescriptionPDF } from "@/utils/generatePrescriptionPDF";
 import { useState } from "react";
 
 interface PrescriptionDetailsProps {
@@ -20,10 +24,81 @@ export function PrescriptionDetails({
 }: PrescriptionDetailsProps) {
   const [downloading, setDownloading] = useState(false);
 
+  // Convert custom Prescription type to database Prescription type
+  const convertToDbPrescription = (
+    prescription: Prescription
+  ): DbPrescription & { medicines: DbMedicine[] } => {
+    // Ensure required string fields for notNull() database constraints
+    const safeUserId = prescription.userId || "unknown-user";
+    const safePatientName = prescription.patientName || "نامشخص";
+    const safeDiagnosis = prescription.diagnosis || "تشخیص نشده";
+    const safeDoctorName = prescription.doctorName || "دکتر";
+
+    return {
+      id: prescription.id,
+      userId: safeUserId,
+      patientName: safePatientName,
+      patientAge: prescription.patientAge || null,
+      patientGender: prescription.patientGender || null,
+      patientPhone: prescription.patientPhone || null,
+      patientAddress: prescription.patientAddress || null,
+      diagnosis: safeDiagnosis,
+      chiefComplaint: prescription.chiefComplaint || null,
+      historyOfPresentIllness: prescription.historyOfPresentIllness || null,
+      physicalExamination: prescription.physicalExamination || null,
+      differentialDiagnosis: prescription.differentialDiagnosis || null,
+      pulseRate: prescription.pulseRate || null,
+      bloodPressure: prescription.bloodPressure || null,
+      temperature: prescription.temperature || null,
+      respiratoryRate: prescription.respiratoryRate || null,
+      oxygenSaturation: prescription.oxygenSaturation || null,
+      allergies: prescription.allergies || [],
+      currentMedications: prescription.currentMedications || [],
+      pastMedicalHistory: prescription.pastMedicalHistory || null,
+      familyHistory: prescription.familyHistory || null,
+      socialHistory: prescription.socialHistory || null,
+      instructions: prescription.instructions || "",
+      followUp: prescription.followUp || null,
+      restrictions: prescription.restrictions || null,
+      doctorName: safeDoctorName,
+      doctorLicenseNumber: prescription.doctorLicenseNumber || null,
+      clinicName: prescription.clinicName || null,
+      clinicAddress: prescription.clinicAddress || null,
+      doctorFree: prescription.doctorFree || null,
+      prescriptionDate: new Date(prescription.prescriptionDate || new Date()),
+      prescriptionNumber: prescription.prescriptionNumber || null,
+      source: prescription.source || null,
+      status: prescription.status || "active",
+      createdAt: new Date(prescription.createdAt || Date.now()),
+      updatedAt: new Date(prescription.updatedAt || Date.now()),
+      aiConfidence: prescription.aiConfidence || null,
+      aiModelUsed: prescription.aiModelUsed || null,
+      processingTime: prescription.processingTime || null,
+      rawAiResponse: prescription.rawAiResponse || null,
+      medicines: prescription.medicines.map((med) => ({
+        id: med.id,
+        prescriptionId: med.prescriptionId,
+        medicine: med.medicine,
+        dosage: med.dosage,
+        form: med.form || null,
+        frequency: med.frequency,
+        duration: med.duration,
+        route: med.route || null,
+        timing: med.timing || null,
+        withFood: med.withFood || false,
+        instructions: med.instructions || null,
+        notes: med.notes || null,
+        createdAt: new Date(med.createdAt || Date.now()),
+        updatedAt: new Date(med.updatedAt || Date.now()),
+      })),
+    };
+  };
+
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      await downloadPrescriptionPDF(prescription);
+      const dbPrescription = convertToDbPrescription(prescription);
+      await downloadPrescriptionPDF(dbPrescription);
     } catch (error) {
       console.error("Failed to download PDF:", error);
       alert("خطا در تولید PDF. لطفاً دوباره تلاش کنید.");
@@ -37,7 +112,11 @@ export function PrescriptionDetails({
   };
 
   // Safe access to prescription array with fallback
-  const medicines = prescription.prescription || [];
+  const medicines = prescription.medicines || [];
+
+  // Safe access to arrays that might be null
+  const allergies = prescription.allergies || [];
+  const currentMedications = prescription.currentMedications || [];
 
   return (
     <div className="space-y-6">
@@ -46,9 +125,13 @@ export function PrescriptionDetails({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="h-4 w-4" />
-            {format(new Date(prescription.prescriptionDate), "PPPP", {
-              locale: faIR,
-            })}
+            {format(
+              new Date(prescription.prescriptionDate || new Date()),
+              "PPPP",
+              {
+                locale: faIR,
+              }
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <User className="h-4 w-4" />
@@ -332,26 +415,24 @@ export function PrescriptionDetails({
       </div>
 
       {/* Medical History */}
-      {(prescription.allergies.length > 0 ||
-        prescription.currentMedications.length > 0 ||
+      {(allergies.length > 0 ||
+        currentMedications.length > 0 ||
         prescription.pastMedicalHistory ||
         prescription.familyHistory ||
         prescription.socialHistory) && (
         <div className="bg-orange-50 p-4 rounded-lg">
           <h3 className="font-semibold text-orange-900 mb-3">سابقه پزشکی</h3>
           <div className="space-y-3 text-sm">
-            {prescription.allergies.length > 0 && (
+            {allergies.length > 0 && (
               <div>
                 <span className="font-medium">حساسیت‌ها:</span>
-                <p className="mt-1">{prescription.allergies.join(", ")}</p>
+                <p className="mt-1">{allergies.join(", ")}</p>
               </div>
             )}
-            {prescription.currentMedications.length > 0 && (
+            {currentMedications.length > 0 && (
               <div>
                 <span className="font-medium">داروهای فعلی:</span>
-                <p className="mt-1">
-                  {prescription.currentMedications.join(", ")}
-                </p>
+                <p className="mt-1">{currentMedications.join(", ")}</p>
               </div>
             )}
             {prescription.pastMedicalHistory && (

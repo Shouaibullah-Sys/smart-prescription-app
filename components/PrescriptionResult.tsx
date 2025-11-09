@@ -28,7 +28,7 @@ export default function PrescriptionResult({
     text += `تشخیص: ${prescription.diagnosis}\n\n`;
     text += "نسخه:\n";
 
-    prescription.prescription.forEach((med, index) => {
+    prescription.medicines.forEach((med, index) => {
       text += `${index + 1}. ${med.medicine} ${med.dosage}\n`;
       text += `   مقدار مصرف: ${med.frequency}\n`;
       text += `   مدت مصرف: ${med.duration}\n`;
@@ -72,7 +72,7 @@ export default function PrescriptionResult({
 
       <div className="space-y-4">
         <h4 className="font-semibold text-gray-900 border-b pb-2">داروها</h4>
-        {prescription.prescription.map((medicine, index) => (
+        {prescription.medicines.map((medicine, index) => (
           <div key={index} className="bg-gray-50 rounded-lg p-4 border">
             <div className="flex justify-between items-start mb-2">
               <span className="font-medium text-gray-900">

@@ -58,7 +58,7 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       patientName: "",
       prescriptionDate: new Date().toISOString().split("T")[0],
       diagnosis: "سرماخوردگی معمولی",
-      prescription: [
+      medicines: [
         {
           id: "med1",
           medicine: "Paracetamol (Acetaminophen)",
@@ -102,7 +102,7 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       patientName: "",
       prescriptionDate: new Date().toISOString().split("T")[0],
       diagnosis: "آنفولانزا",
-      prescription: [
+      medicines: [
         {
           id: "med1",
           medicine: "Paracetamol",
@@ -146,7 +146,7 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       patientName: "",
       prescriptionDate: new Date().toISOString().split("T")[0],
       diagnosis: "سینوزیت حاد",
-      prescription: [
+      medicines: [
         {
           id: "med1",
           medicine: "Amoxicillin",
@@ -190,7 +190,7 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       patientName: "",
       prescriptionDate: new Date().toISOString().split("T")[0],
       diagnosis: "تونسیلیت احتمالی",
-      prescription: [
+      medicines: [
         {
           id: "med1",
           medicine: "Amoxicillin",
@@ -234,7 +234,7 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       patientName: "",
       prescriptionDate: new Date().toISOString().split("T")[0],
       diagnosis: "حساسیت فصلی",
-      prescription: [
+      medicines: [
         {
           id: "med1",
           medicine: "Cetirizine",
@@ -476,8 +476,8 @@ export default function QuickButtons({
                     </div>
 
                     {/* Medicine Preview */}
-                    {p.prescription?.prescription
-                      .slice(0, 2)
+                    {p.prescription?.medicines
+                      ?.slice(0, 2)
                       .map((med, index) => (
                         <div
                           key={index}

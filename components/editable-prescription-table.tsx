@@ -71,8 +71,8 @@ export function EditablePrescriptionTable({
       ...prescription,
 
       // Override prescription array with properly formatted medicines
-      prescription:
-        prescription.prescription?.map((med) => ({
+      medicines:
+        prescription.medicines?.map((med) => ({
           id: med.id || Math.random().toString(36).substr(2, 9),
           medicine: med.medicine || "",
           dosage: med.dosage || "",
@@ -105,11 +105,11 @@ export function EditablePrescriptionTable({
     field: keyof FormMedicine,
     value: any
   ) => {
-    const updatedMeds = [...editablePrescription.prescription];
+    const updatedMeds = [...editablePrescription.medicines];
     updatedMeds[index] = { ...updatedMeds[index], [field]: value };
     setEditablePrescription((prev) => ({
       ...prev,
-      prescription: updatedMeds,
+      medicines: updatedMeds,
     }));
   };
 
@@ -130,14 +130,14 @@ export function EditablePrescriptionTable({
     };
     setEditablePrescription((prev) => ({
       ...prev,
-      prescription: [...prev.prescription, newMedicine],
+      medicines: [...prev.medicines, newMedicine],
     }));
   };
 
   const removeMedicine = (index: number) => {
     setEditablePrescription((prev) => ({
       ...prev,
-      prescription: prev.prescription.filter((_, i) => i !== index),
+      medicines: prev.medicines.filter((_, i) => i !== index),
     }));
   };
 
@@ -158,7 +158,7 @@ export function EditablePrescriptionTable({
       return;
     }
 
-    const hasEmptyMedicines = editablePrescription.prescription.some(
+    const hasEmptyMedicines = editablePrescription.medicines.some(
       (med) =>
         !med.medicine.trim() ||
         !med.dosage.trim() ||
@@ -171,7 +171,7 @@ export function EditablePrescriptionTable({
       return;
     }
 
-    if (editablePrescription.prescription.length === 0) {
+    if (editablePrescription.medicines.length === 0) {
       alert("حداقل یک دارو باید به نسخه اضافه شود");
       return;
     }
@@ -193,7 +193,7 @@ export function EditablePrescriptionTable({
       id: Math.random().toString(36).substr(2, 9),
       patientName: `کپی از ${editablePrescription.patientName}`,
       prescriptionNumber: undefined,
-      prescription: editablePrescription.prescription.map((med) => ({
+      medicines: editablePrescription.medicines.map((med) => ({
         ...med,
         id: Math.random().toString(36).substr(2, 9),
         prescriptionId: "",
@@ -228,7 +228,7 @@ export function EditablePrescriptionTable({
           className="flex items-center gap-2"
         >
           <Pill className="h-4 w-4" />
-          داروها ({editablePrescription.prescription.length})
+          داروها ({editablePrescription.medicines.length})
         </Button>
         <Button
           variant={activeSection === "instructions" ? "default" : "ghost"}
@@ -310,7 +310,7 @@ export function EditablePrescriptionTable({
                 <div>
                   <Label htmlFor="patientGender">جنسیت</Label>
                   <Select
-                    value={editablePrescription.patientGender}
+                    value={editablePrescription.patientGender || undefined}
                     onValueChange={(value) =>
                       updateField("patientGender", value || "")
                     }
@@ -525,190 +525,180 @@ export function EditablePrescriptionTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {editablePrescription.prescription.map(
-                        (medicine, index) => (
-                          <tr
-                            key={medicine.id}
-                            className="border-b last:border-b-0 hover:bg-muted/50"
-                          >
-                            <td className="p-2">
-                              <Input
-                                value={medicine.medicine}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "medicine",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="نام دارو به انگلیسی"
-                                className="w-full text-sm"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={medicine.dosage}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "dosage",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="مثلاً 500mg"
-                                className="w-full text-sm"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Select
-                                value={medicine.form ?? undefined}
-                                onValueChange={(value) =>
-                                  updateMedicine(index, "form", value)
-                                }
-                              >
-                                <SelectTrigger className="w-full text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="tablet">قرص</SelectItem>
-                                  <SelectItem value="capsule">کپسول</SelectItem>
-                                  <SelectItem value="syrup">شربت</SelectItem>
-                                  <SelectItem value="injection">
-                                    آمپول
-                                  </SelectItem>
-                                  <SelectItem value="inhaler">اسپری</SelectItem>
-                                  <SelectItem value="cream">کرم</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={medicine.frequency}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "frequency",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="مثلاً هر 8 ساعت"
-                                className="w-full text-sm"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={medicine.duration}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "duration",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="مثلاً 7 روز"
-                                className="w-full text-sm"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Select
-                                value={medicine.route ?? undefined}
-                                onValueChange={(value) =>
-                                  updateMedicine(index, "route", value)
-                                }
-                              >
-                                <SelectTrigger className="w-full text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="oral">خوراکی</SelectItem>
-                                  <SelectItem value="topical">موضعی</SelectItem>
-                                  <SelectItem value="injection">
-                                    تزریقی
-                                  </SelectItem>
-                                  <SelectItem value="inhalation">
-                                    استنشاقی
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="p-2">
-                              <Select
-                                value={medicine.timing ?? undefined}
-                                onValueChange={(value) =>
-                                  updateMedicine(index, "timing", value)
-                                }
-                              >
-                                <SelectTrigger className="w-full text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="before_meal">
-                                    قبل از غذا
-                                  </SelectItem>
-                                  <SelectItem value="after_meal">
-                                    بعد از غذا
-                                  </SelectItem>
-                                  <SelectItem value="with_meal">
-                                    همراه غذا
-                                  </SelectItem>
-                                  <SelectItem value="empty_stomach">
-                                    ناشتا
-                                  </SelectItem>
-                                  <SelectItem value="anytime">
-                                    هر زمان
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="p-2 text-center">
-                              <input
-                                type="checkbox"
-                                checked={medicine.withFood || false}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "withFood",
-                                    e.target.checked
-                                  )
-                                }
-                                className="h-4 w-4"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={medicine.instructions || ""}
-                                onChange={(e) =>
-                                  updateMedicine(
-                                    index,
-                                    "instructions",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="دستورات مصرف"
-                                className="w-full text-sm"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeMedicine(index)}
-                                disabled={
-                                  editablePrescription.prescription.length === 1
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        )
-                      )}
+                      {editablePrescription.medicines.map((medicine, index) => (
+                        <tr
+                          key={medicine.id}
+                          className="border-b last:border-b-0 hover:bg-muted/50"
+                        >
+                          <td className="p-2">
+                            <Input
+                              value={medicine.medicine}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  index,
+                                  "medicine",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="نام دارو به انگلیسی"
+                              className="w-full text-sm"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={medicine.dosage}
+                              onChange={(e) =>
+                                updateMedicine(index, "dosage", e.target.value)
+                              }
+                              placeholder="مثلاً 500mg"
+                              className="w-full text-sm"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={medicine.form ?? undefined}
+                              onValueChange={(value) =>
+                                updateMedicine(index, "form", value)
+                              }
+                            >
+                              <SelectTrigger className="w-full text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="tablet">قرص</SelectItem>
+                                <SelectItem value="capsule">کپسول</SelectItem>
+                                <SelectItem value="syrup">شربت</SelectItem>
+                                <SelectItem value="injection">آمپول</SelectItem>
+                                <SelectItem value="inhaler">اسپری</SelectItem>
+                                <SelectItem value="cream">کرم</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={medicine.frequency}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  index,
+                                  "frequency",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="مثلاً هر 8 ساعت"
+                              className="w-full text-sm"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={medicine.duration}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  index,
+                                  "duration",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="مثلاً 7 روز"
+                              className="w-full text-sm"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={medicine.route ?? undefined}
+                              onValueChange={(value) =>
+                                updateMedicine(index, "route", value)
+                              }
+                            >
+                              <SelectTrigger className="w-full text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="oral">خوراکی</SelectItem>
+                                <SelectItem value="topical">موضعی</SelectItem>
+                                <SelectItem value="injection">
+                                  تزریقی
+                                </SelectItem>
+                                <SelectItem value="inhalation">
+                                  استنشاقی
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={medicine.timing ?? undefined}
+                              onValueChange={(value) =>
+                                updateMedicine(index, "timing", value)
+                              }
+                            >
+                              <SelectTrigger className="w-full text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="before_meal">
+                                  قبل از غذا
+                                </SelectItem>
+                                <SelectItem value="after_meal">
+                                  بعد از غذا
+                                </SelectItem>
+                                <SelectItem value="with_meal">
+                                  همراه غذا
+                                </SelectItem>
+                                <SelectItem value="empty_stomach">
+                                  ناشتا
+                                </SelectItem>
+                                <SelectItem value="anytime">هر زمان</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={medicine.withFood || false}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  index,
+                                  "withFood",
+                                  e.target.checked
+                                )
+                              }
+                              className="h-4 w-4"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={medicine.instructions || ""}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  index,
+                                  "instructions",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="دستورات مصرف"
+                              className="w-full text-sm"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeMedicine(index)}
+                              disabled={
+                                editablePrescription.medicines.length === 1
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {editablePrescription.prescription.length === 0 && (
+              {editablePrescription.medicines.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   هیچ دارویی اضافه نشده است
                 </div>
@@ -834,7 +824,7 @@ export function EditablePrescriptionTable({
               <Button
                 onClick={handleSave}
                 disabled={
-                  isSaving || editablePrescription.prescription.length === 0
+                  isSaving || editablePrescription.medicines.length === 0
                 }
                 className="flex items-center gap-2"
               >

@@ -110,8 +110,9 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("fa-IR").format(amount);
 };
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("fa-IR");
+const formatDate = (dateInput: string | Date) => {
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return date.toLocaleDateString("fa-IR");
 };
 
 // Table columns definition

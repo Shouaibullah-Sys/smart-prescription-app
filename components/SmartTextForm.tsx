@@ -74,7 +74,7 @@ export default function SmartTextForm({
           patientGender: "",
           patientPhone: "",
           diagnosis: result.prescription.diagnosis,
-          prescription: result.prescription.medications,
+          medicines: result.prescription.medications,
           chiefComplaint: inputText,
           historyOfPresentIllness: result.prescription.clinicalNotes,
           physicalExamination: result.prescription.recommendations.join(", "),

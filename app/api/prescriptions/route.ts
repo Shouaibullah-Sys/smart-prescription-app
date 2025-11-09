@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/index";
 import { prescriptions, medicines } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
-import { eq, and, like, or, inArray } from "drizzle-orm";
+import { eq, and, like, or, inArray, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // Define the type for incoming medicine data
@@ -79,12 +79,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get paginated prescription IDs
+    // Get paginated prescription IDs - most recent first
     const prescriptionIds = await db
       .select({ id: prescriptions.id })
       .from(prescriptions)
       .where(whereCondition)
-      .orderBy(prescriptions.createdAt)
+      .orderBy(desc(prescriptions.createdAt))
       .limit(limit)
       .offset(skip);
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
         )
       )
       .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
-      .orderBy(prescriptions.createdAt);
+      .orderBy(desc(prescriptions.createdAt));
 
     // Group prescriptions with their medicines
     const groupedPrescriptions = prescriptionsData.reduce((acc, row) => {
@@ -230,16 +230,29 @@ export async function POST(request: NextRequest) {
 
     console.log("Prescription created:", prescription.id);
 
-    // Create medicines if provided
-    if (body.medicines && Array.isArray(body.medicines)) {
-      const medicinePromises = body.medicines.map((med: IncomingMedicine) => {
-        const medicineName = med.medicine || med.name;
-        if (medicineName && med.dosage) {
-          return db.insert(medicines).values({
+    // Create medicines if provided. Accept either `body.prescription` (form) or
+    // `body.medicines` (alternate clients). Build an array and insert in one
+    // batch so we reliably persist all items.
+    const incomingMeds: IncomingMedicine[] = Array.isArray(body.prescription)
+      ? body.prescription
+      : Array.isArray(body.medicines)
+      ? body.medicines
+      : [];
+
+    if (incomingMeds.length > 0) {
+      console.log("Incoming medicines payload:", incomingMeds);
+
+      const medicinesData = incomingMeds
+        .map((med: IncomingMedicine) => {
+          const medicineName = med.medicine || med.name || "";
+          const dosage = med.dosage || ""; // fix mapping; fall back to empty string
+          if (!medicineName || !dosage) return null; // skip incomplete entries
+
+          return {
             id: uuidv4(),
             prescriptionId: prescriptionId,
             medicine: medicineName,
-            dosage: med.dosage,
+            dosage: dosage,
             form: med.form || "",
             frequency: med.frequency || "",
             duration: med.duration || "",
@@ -250,13 +263,54 @@ export async function POST(request: NextRequest) {
             notes: med.notes || "",
             createdAt: new Date(),
             updatedAt: new Date(),
-          });
-        }
-        return Promise.resolve();
-      });
+          } as any;
+        })
+        .filter(Boolean) as any[];
 
-      await Promise.all(medicinePromises);
-      console.log("Medicines created for prescription:", prescriptionId);
+      if (medicinesData.length > 0) {
+        // Insert all medicines in a single query for consistency and try to get returned rows (if DB supports)
+        try {
+          const inserted = await db
+            .insert(medicines)
+            .values(medicinesData)
+            .returning();
+          console.log(
+            "Medicines inserted (returning):",
+            Array.isArray(inserted) ? inserted.length : "unknown",
+            inserted
+          );
+        } catch (insertErr) {
+          // Some drivers/DBs (like SQLite with Drizzle) may not support returning(); still proceed and verify with select
+          console.warn(
+            "Insert returning() failed or unsupported, falling back to non-returning insert:",
+            insertErr
+          );
+          await db.insert(medicines).values(medicinesData);
+        }
+
+        // Verify by selecting from DB to make sure rows exist
+        try {
+          const verify = await db
+            .select()
+            .from(medicines)
+            .where(eq(medicines.prescriptionId, prescriptionId));
+          console.log(
+            "Verified medicines count in DB for prescription:",
+            prescriptionId,
+            "=>",
+            verify.length
+          );
+          // optional: log the rows (be careful with sensitive data)
+          console.log("Verified medicines rows:", verify);
+        } catch (verifyErr) {
+          console.error("Verification select after insert failed:", verifyErr);
+        }
+      } else {
+        console.log(
+          "No valid medicines to insert for prescription:",
+          prescriptionId
+        );
+      }
     }
 
     // Fetch the complete prescription with medicines
