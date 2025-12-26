@@ -8,6 +8,20 @@
       "when": 1762625681046,
       "tag": "0000_flowery_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762626000000,
+      "tag": "0001_remove_unused_clinical_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762626300000,
+      "tag": "0002_remove_diagnosis_field",
+      "breakpoints": true
     }
   ]
 }

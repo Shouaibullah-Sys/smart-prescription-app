@@ -32,7 +32,7 @@ export const useColumns = ({
     // Ensure required string fields
     const safeUserId = prescription.userId || "unknown-user";
     const safePatientName = prescription.patientName || "نامشخص";
-    const safeDiagnosis = prescription.diagnosis || "تشخیص نشده";
+
     const safeDoctorName = prescription.doctorName || "دکتر";
 
     // Convert medications to Medication format
@@ -62,9 +62,13 @@ export const useColumns = ({
       patientGender: prescription.patientGender || "نامشخص",
       allergies: prescription.allergies || [],
       pulseRate: prescription.pulseRate || "",
+      bloodPressure: prescription.bloodPressure || "",
+      temperature: prescription.temperature || "",
+      respiratoryRate: prescription.respiratoryRate || "",
+      oxygenSaturation: prescription.oxygenSaturation || "",
       medicationUsage: (prescription.currentMedications || []).join(", "),
       relevantPastMedicalHistory: prescription.pastMedicalHistory || "",
-      diagnosis: safeDiagnosis,
+
       medicines: medications,
       instructions: prescription.instructions || "",
       doctorName: safeDoctorName,
@@ -107,15 +111,7 @@ export const useColumns = ({
         </div>
       ),
     },
-    {
-      accessorKey: "diagnosis",
-      header: "تشخیص",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate" title={row.original.diagnosis}>
-          {row.original.diagnosis}
-        </div>
-      ),
-    },
+
     {
       accessorKey: "patientAge",
       header: "سن",

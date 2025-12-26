@@ -24,8 +24,7 @@ export default function PrescriptionResult({
   };
 
   const formatPrescriptionText = (prescription: Prescription): string => {
-    let text = `بیمار: ${prescription.patientName}\n`;
-    text += `تشخیص: ${prescription.diagnosis}\n\n`;
+    let text = `بیمار: ${prescription.patientName}\n\n`;
     text += "نسخه:\n";
 
     prescription.medicines.forEach((med, index) => {
@@ -62,10 +61,6 @@ export default function PrescriptionResult({
               نام بیمار:
             </label>
             <p className="text-lg text-gray-900">{prescription.patientName}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">تشخیص:</label>
-            <p className="text-lg text-gray-900">{prescription.diagnosis}</p>
           </div>
         </div>
       </div>

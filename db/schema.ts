@@ -23,7 +23,6 @@ export const prescriptions = pgTable("prescriptions", {
   patientAddress: text("patient_address"),
 
   // Medical Information
-  diagnosis: text("diagnosis").notNull(),
   chiefComplaint: text("chief_complaint"),
 
   // Vital Signs

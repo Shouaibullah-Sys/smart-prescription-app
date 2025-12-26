@@ -61,7 +61,6 @@ export async function GET(request: NextRequest) {
     if (search) {
       const searchCondition = or(
         like(prescriptions.patientName, `%${search}%`),
-        like(prescriptions.diagnosis, `%${search}%`),
         like(prescriptions.doctorName, `%${search}%`)
       );
       whereCondition = and(whereCondition, searchCondition) as any;
@@ -221,9 +220,9 @@ export async function POST(request: NextRequest) {
     console.log("Received prescription data:", body);
 
     // Basic validation
-    if (!body.patientName || !body.diagnosis) {
+    if (!body.patientName) {
       return NextResponse.json(
-        { success: false, error: "نام بیمار و تشخیص بیماری الزامی است" },
+        { success: false, error: "نام بیمار الزامی است" },
         { status: 400 }
       );
     }
@@ -242,7 +241,6 @@ export async function POST(request: NextRequest) {
           patientGender: body.patientGender || "",
           patientPhone: body.patientPhone || "",
           patientAddress: body.patientAddress || "",
-          diagnosis: body.diagnosis,
           chiefComplaint: body.chiefComplaint || "",
           pulseRate: body.pulseRate || "",
           bloodPressure: body.bloodPressure || "",

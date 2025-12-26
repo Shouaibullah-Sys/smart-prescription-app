@@ -31,7 +31,6 @@ export interface VoicePrescription {
   oxygenSaturation: string;
   medicationUsage: string;
   relevantPastMedicalHistory: string;
-  diagnosis: string;
   medicines: Medication[];
   instructions: string;
   doctorName: string;

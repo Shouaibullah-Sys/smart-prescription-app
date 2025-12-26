@@ -25,7 +25,6 @@ export interface Prescription {
   patientGender?: string | null;
   patientPhone?: string | null;
   patientAddress?: string | null;
-  diagnosis: string;
   medicines: FormMedicine[]; // Required array, populated from database
   chiefComplaint?: string | null;
   pulseRate?: string | null;
@@ -33,11 +32,17 @@ export interface Prescription {
   temperature?: string | null;
   respiratoryRate?: string | null;
   oxygenSaturation?: string | null;
+  weight?: string | null; // Added for enhanced form
+  height?: string | null; // Added for enhanced form
+  bmi?: string | null; // Added for enhanced form
   allergies?: string[] | null; // Made consistent with database schema (jsonb type)
   currentMedications?: string[] | null; // Made consistent with database schema (jsonb type)
   pastMedicalHistory?: string | null;
   familyHistory?: string | null;
   socialHistory?: string | null;
+  physicalExam?: string | null; // Added for enhanced form
+  medicalExams?: string[] | null; // Added for enhanced form
+  examNotes?: string | null; // Added for enhanced form
   instructions?: string | null;
   followUp?: string | null;
   restrictions?: string | null;
@@ -63,7 +68,6 @@ export interface AutocompleteResponse {
 }
 
 export interface AIAnalysis {
-  diagnosis: string;
   confidence: string;
   medications: FormMedicine[];
   clinicalNotes: string;

@@ -32,6 +32,7 @@ import {
   FileText,
 } from "lucide-react";
 import { Prescription, FormMedicine } from "@/types/prescription";
+import { getTimingOptions } from "@/lib/medicationTimingTranslations";
 
 interface EditablePrescriptionTableProps {
   prescription: Prescription;
@@ -58,7 +59,6 @@ export function EditablePrescriptionTable({
         patientAge: "",
         patientGender: "",
         chiefComplaint: "",
-        diagnosis: "",
         prescription: [],
         doctorName: "Dr. Ahmad",
         clinicName: "Specialized Clinic",
@@ -149,11 +149,6 @@ export function EditablePrescriptionTable({
 
     if (!editablePrescription.chiefComplaint?.trim()) {
       alert("Please enter patient's chief complaint");
-      return;
-    }
-
-    if (!editablePrescription.diagnosis.trim()) {
-      alert("Please enter patient diagnosis");
       return;
     }
 
@@ -371,16 +366,7 @@ export function EditablePrescriptionTable({
                     placeholder="شکایت اصلی بیمار"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="diagnosis">تشخیص *</Label>
-                  <Input
-                    id="diagnosis"
-                    value={editablePrescription.diagnosis}
-                    onChange={(e) => updateField("diagnosis", e.target.value)}
-                    className="mt-1"
-                    placeholder="تشخیص نهایی"
-                  />
-                </div>
+
                 <div>
                   <Label htmlFor="doctorName">نام پزشک</Label>
                   <Input
@@ -626,19 +612,14 @@ export function EditablePrescriptionTable({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="before_meal">
-                                  قبل از غذا
-                                </SelectItem>
-                                <SelectItem value="after_meal">
-                                  بعد از غذا
-                                </SelectItem>
-                                <SelectItem value="with_meal">
-                                  همراه غذا
-                                </SelectItem>
-                                <SelectItem value="empty_stomach">
-                                  ناشتا
-                                </SelectItem>
-                                <SelectItem value="anytime">هر زمان</SelectItem>
+                                {getTimingOptions().map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </td>

@@ -374,9 +374,11 @@ export default function DashboardClient({
                     <div className="flex items-center gap-3 mb-8">
                       <div className="p-2 bg-primary/10 rounded-lg"></div>
                       <div>
-                        <h2 className="text-lg font-bold">سیستم نسخه‌پیچی</h2>
+                        <h2 className="text-lg font-bold">
+                          Prescription System
+                        </h2>
                         <p className="text-xs text-muted-foreground">
-                          پلتفرم هوشمند
+                          Smart Platform
                         </p>
                       </div>
                     </div>
@@ -404,7 +406,7 @@ export default function DashboardClient({
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            نسخه‌های امروز
+                            Prescriptions today
                           </span>
                           <span className="font-medium">
                             {todayPrescriptions}
@@ -412,7 +414,7 @@ export default function DashboardClient({
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            نسخه‌های این ماه
+                            Prescriptions this month
                           </span>
                           <span className="font-medium">
                             {monthlyPrescriptions}
@@ -432,7 +434,7 @@ export default function DashboardClient({
                           }}
                         >
                           <Plus className="h-4 w-4 ml-2" />
-                          ایجاد نسخه جدید
+                          Create new prescription
                         </Button>
                         <Button
                           variant={
@@ -445,7 +447,7 @@ export default function DashboardClient({
                           }}
                         >
                           <FileText className="h-4 w-4 ml-2" />
-                          قالب‌های پزشکی
+                          Medical templates
                         </Button>
                         <Button
                           variant={
@@ -471,7 +473,7 @@ export default function DashboardClient({
                           }}
                         >
                           <DollarSign className="h-4 w-4 ml-2" />
-                          مبالغ ویزیت
+                          Visit amounts
                         </Button>
                       </nav>
                     </div>
@@ -488,7 +490,7 @@ export default function DashboardClient({
                           }}
                         >
                           <LogOut className="h-4 w-4 ml-2" />
-                          خروج از سیستم
+                          Logout
                         </Button>
                       </div>
                     </div>
@@ -505,15 +507,15 @@ export default function DashboardClient({
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    سیستم نسخه نویسی پزشکی
+                    Medical Prescription System
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    پلتفرم هوشمند مدیریت نسخه‌های پزشکی
+                    Smart platform for managing medical prescriptions
                   </p>
                 </div>
                 <div className="sm:hidden">
                   <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    نسخه نویسی
+                    Prescription
                   </h1>
                   <p className="text-xs text-muted-foreground">سیستم پزشکی</p>
                 </div>
@@ -641,11 +643,11 @@ export default function DashboardClient({
                   ></div>
                   <span className="text-sm font-medium">
                     {databaseStatus === "disconnected" &&
-                      "اتصال پایگاه داده قطع شده است - برخی امکانات محدود هستند"}
+                      "Database connection lost - some features are limited"}
                     {databaseStatus === "error" &&
-                      "خطا در اتصال به پایگاه داده - لطفاً صفحه را refresh کنید"}
+                      "Database connection error - please refresh the page"}
                     {databaseStatus === "unknown" &&
-                      "در حال بررسی اتصال پایگاه داده..."}
+                      "Checking database connection..."}
                   </span>
                 </div>
                 <Button variant="ghost" size="sm" className="h-7 px-2">
@@ -998,9 +1000,6 @@ export default function DashboardClient({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">
                             {prescription.patientName || "بدون نام"}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {prescription.diagnosis?.slice(0, 40)}...
                           </p>
                         </div>
                       </div>

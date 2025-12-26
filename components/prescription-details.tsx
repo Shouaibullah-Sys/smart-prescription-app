@@ -44,12 +44,7 @@ export function PrescriptionDetails({
               </p>
             </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
-              Diagnosis
-            </label>
-            <p className="text-lg font-medium">{prescription.diagnosis}</p>
-          </div>
+
           {prescription.chiefComplaint && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">

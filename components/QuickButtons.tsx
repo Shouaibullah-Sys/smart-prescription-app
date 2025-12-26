@@ -58,7 +58,6 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       userId: "",
       patientName: "",
       prescriptionDate: new Date(),
-      diagnosis: "سرماخوردگی معمولی",
       doctorName: "",
       medicines: [
         {
@@ -104,7 +103,6 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       userId: "",
       patientName: "",
       prescriptionDate: new Date(),
-      diagnosis: "آنفولانزا",
       doctorName: "",
       medicines: [
         {
@@ -150,7 +148,6 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       userId: "",
       patientName: "",
       prescriptionDate: new Date(),
-      diagnosis: "سینوزیت حاد",
       doctorName: "",
       medicines: [
         {
@@ -196,7 +193,6 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       userId: "",
       patientName: "",
       prescriptionDate: new Date(),
-      diagnosis: "تونسیلیت احتمالی",
       doctorName: "",
       medicines: [
         {
@@ -242,7 +238,6 @@ const DEFAULT_PRESETS: ConditionPreset[] = [
       userId: "",
       patientName: "",
       prescriptionDate: new Date(),
-      diagnosis: "حساسیت فصili",
       doctorName: "",
       medicines: [
         {
@@ -339,7 +334,7 @@ export default function QuickButtons({
               return {
                 ...lp,
                 prescription: p,
-                preview: p.diagnosis || lp.preview,
+                preview: lp.preview,
               };
             }
             return lp;
@@ -361,8 +356,7 @@ export default function QuickButtons({
     return localPresets.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        (p.preview && p.preview.toLowerCase().includes(q)) ||
-        (p.prescription && p.prescription.diagnosis.toLowerCase().includes(q))
+        (p.preview && p.preview.toLowerCase().includes(q))
     );
   }, [search, localPresets]);
 
