@@ -135,11 +135,14 @@ const columns: ColumnDef<Prescription>[] = [
     ),
   },
   {
-    accessorKey: "diagnosis",
-    header: "تشخیص",
+    accessorKey: "chiefComplaint",
+    header: "شکایت اصلی",
     cell: ({ row }) => (
-      <div className="max-w-[200px] truncate" title={row.getValue("diagnosis")}>
-        {row.getValue("diagnosis")}
+      <div
+        className="max-w-[200px] truncate"
+        title={row.getValue("chiefComplaint")}
+      >
+        {row.getValue("chiefComplaint")}
       </div>
     ),
   },
@@ -216,9 +219,6 @@ export function PrescriptionAmount() {
         prescription.patientName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        prescription.diagnosis
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
         prescription.doctorFree
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase());
@@ -279,7 +279,7 @@ export function PrescriptionAmount() {
   const handleExport = () => {
     const data = prescriptionsWithAmount.map((prescription) => ({
       patientName: prescription.patientName,
-      diagnosis: prescription.diagnosis,
+      chiefComplaint: prescription.chiefComplaint,
       prescriptionDate: formatDate(prescription.prescriptionDate),
       doctorFree: prescription.doctorFree,
       amount: parseFloat(
@@ -291,7 +291,7 @@ export function PrescriptionAmount() {
       ["نام بیمار", "تشخیص", "تاریخ نسخه", "مبلغ ویزیت", "مبلغ (عدد)"],
       ...data.map((row) => [
         row.patientName,
-        row.diagnosis,
+        row.chiefComplaint,
         row.prescriptionDate,
         row.doctorFree,
         row.amount.toString(),

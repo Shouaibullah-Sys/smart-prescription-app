@@ -108,7 +108,6 @@ export async function PUT(
       patientAddress: body.patientAddress,
 
       // Medical Information
-      diagnosis: body.diagnosis,
       chiefComplaint: body.chiefComplaint,
       historyOfPresentIllness: body.historyOfPresentIllness,
       physicalExamination: body.physicalExamination,

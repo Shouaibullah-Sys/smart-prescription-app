@@ -28,6 +28,7 @@ export interface Prescription {
   medicines: FormMedicine[]; // Required array, populated from database
   chiefComplaint?: string | null;
   pulseRate?: string | null;
+  heartRate?: string | null;
   bloodPressure?: string | null;
   temperature?: string | null;
   respiratoryRate?: string | null;

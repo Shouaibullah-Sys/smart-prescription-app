@@ -70,7 +70,7 @@ export function MultiTextInput({
                 variant="ghost"
                 size="sm"
                 onClick={() => removeValue(index)}
-                className="h-auto p-0 w-5 h-5 hover:bg-transparent"
+                className="h-auto p-0 w-5 hover:bg-transparent"
               >
                 <X className="h-3 w-3" />
               </Button>

@@ -22,6 +22,20 @@
       "when": 1762626300000,
       "tag": "0002_remove_diagnosis_field",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766577016000,
+      "tag": "0003_add_missing_fields_and_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766739400000,
+      "tag": "0004_add_heart_rate_field",
+      "breakpoints": true
     }
   ]
 }

@@ -27,10 +27,16 @@ export const prescriptions = pgTable("prescriptions", {
 
   // Vital Signs
   pulseRate: text("pulse_rate"),
+  heartRate: text("heart_rate"),
   bloodPressure: text("blood_pressure"),
   temperature: text("temperature"),
   respiratoryRate: text("respiratory_rate"),
   oxygenSaturation: text("oxygen_saturation"),
+
+  // Anthropometry
+  weight: text("weight"),
+  height: text("height"),
+  bmi: text("bmi"),
 
   // Medical History
   allergies: jsonb("allergies").$type<string[]>(),
@@ -38,6 +44,11 @@ export const prescriptions = pgTable("prescriptions", {
   pastMedicalHistory: text("past_medical_history"),
   familyHistory: text("family_history"),
   socialHistory: text("social_history"),
+
+  // Physical Examination
+  physicalExam: text("physical_exam"),
+  medicalExams: jsonb("medical_exams").$type<string[]>(),
+  examNotes: text("exam_notes"),
 
   // Treatment Information
   instructions: text("instructions"),
@@ -94,9 +105,41 @@ export const medicines = pgTable("medicines", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+// Tests table for medical tests and procedures
+export const tests = pgTable("tests", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  category: jsonb("category").$type<string[]>(),
+  type: text("type").notNull(), // "Laboratory" | "Imaging" | "Special Test" | "Procedure"
+  preparation: jsonb("preparation").$type<string[]>(),
+  fastingRequired: boolean("fasting_required").default(false),
+  description: text("description"),
+  normalRange: text("normal_range"),
+  popularScore: integer("popular_score").default(0),
+  insuranceCoverage: boolean("insurance_coverage").default(true),
+  costEstimate: integer("cost_estimate"),
+  turnaroundTime: text("turnaround_time"),
+  sampleType: text("sample_type"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Prescription Tests junction table for many-to-many relationship
+export const prescriptionTests = pgTable("prescription_tests", {
+  id: text("id").primaryKey(),
+  prescriptionId: text("prescription_id").notNull(),
+  testId: text("test_id").notNull(),
+  testName: text("test_name").notNull(), // Denormalized for performance
+  notes: text("notes"),
+  priority: text("priority").default("routine"), // "routine" | "urgent" | "stat"
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 // Define relationships
 export const prescriptionsRelations = relations(prescriptions, ({ many }) => ({
   medicines: many(medicines),
+  prescriptionTests: many(prescriptionTests),
 }));
 
 export const medicinesRelations = relations(medicines, ({ one }) => ({
@@ -106,8 +149,30 @@ export const medicinesRelations = relations(medicines, ({ one }) => ({
   }),
 }));
 
+export const testsRelations = relations(tests, ({ many }) => ({
+  prescriptionTests: many(prescriptionTests),
+}));
+
+export const prescriptionTestsRelations = relations(
+  prescriptionTests,
+  ({ one }) => ({
+    prescription: one(prescriptions, {
+      fields: [prescriptionTests.prescriptionId],
+      references: [prescriptions.id],
+    }),
+    test: one(tests, {
+      fields: [prescriptionTests.testId],
+      references: [tests.id],
+    }),
+  })
+);
+
 // Export types for easy importing
 export type Prescription = typeof prescriptions.$inferSelect;
 export type NewPrescription = typeof prescriptions.$inferInsert;
 export type Medicine = typeof medicines.$inferSelect;
 export type NewMedicine = typeof medicines.$inferInsert;
+export type Test = typeof tests.$inferSelect;
+export type NewTest = typeof tests.$inferInsert;
+export type PrescriptionTest = typeof prescriptionTests.$inferSelect;
+export type NewPrescriptionTest = typeof prescriptionTests.$inferInsert;

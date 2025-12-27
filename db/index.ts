@@ -169,10 +169,7 @@ export const dbUtils = {
       .where(
         and(
           eq(prescriptions.userId, userId),
-          or(
-            like(prescriptions.patientName, `%${searchTerm}%`),
-            like(prescriptions.diagnosis, `%${searchTerm}%`)
-          )
+          or(like(prescriptions.patientName, `%${searchTerm}%`))
         )
       )
       .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))

@@ -59,7 +59,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SmartMedicationSearch } from "@/components/SmartMedicationSearch";
-import { SmartTestSearch } from "@/components/SmartTestSearch";
+import { TestSearchForm } from "@/components/TestSearchForm";
 import { MultiTextInput } from "@/components/MultiTextInput";
 import {
   getFrequencyOptions,
@@ -118,10 +118,12 @@ export function EnhancedPrescriptionForm({
   const [selectedExams, setSelectedExams] = useState<Set<string>>(
     new Set(prescription.medicalExams || [])
   );
+  const [selectedTestObjects, setSelectedTestObjects] = useState<any[]>([]);
 
   useEffect(() => {
     setEditablePrescription(initializePrescription(prescription));
     setSelectedExams(new Set(prescription.medicalExams || []));
+    setSelectedTestObjects([]);
   }, [prescription]);
 
   function initializePrescription(prescription: Prescription): Prescription {
@@ -154,6 +156,7 @@ export function EnhancedPrescriptionForm({
       patientGender: prescription.patientGender || "",
       patientPhone: prescription.patientPhone || "",
       pulseRate: prescription.pulseRate || "",
+      heartRate: prescription.heartRate || "",
       bloodPressure: prescription.bloodPressure || "",
       temperature: prescription.temperature || "",
       respiratoryRate: prescription.respiratoryRate || "",
@@ -185,7 +188,7 @@ export function EnhancedPrescriptionForm({
       doctorFree: prescription.doctorFree || "",
       chiefComplaint: prescription.chiefComplaint || "",
       doctorName: prescription.doctorName || "Dr. Ahmad Farid",
-      createdAt: prescription.createdAt || new Date().toISOString(),
+      createdAt: prescription.createdAt || new Date(),
     };
   }
 
@@ -303,13 +306,25 @@ export function EnhancedPrescriptionForm({
   const medicinesCount = editablePrescription.medicines.length;
 
   // Calculate BMI if weight and height are provided
-  const calculateBMI = () => {
-    const weight = parseFloat(editablePrescription.weight || "0");
-    const height = parseFloat(editablePrescription.height || "0") / 100; // convert cm to m
-    if (weight > 0 && height > 0) {
-      const bmi = (weight / (height * height)).toFixed(1);
-      updateField("bmi", bmi);
+  const calculateBMI = (): string | null => {
+    const weight = parseFloat(editablePrescription.weight || "");
+    const heightCm = parseFloat(editablePrescription.height || "");
+
+    // Validate inputs: ensure they are positive numbers
+    if (isNaN(weight) || isNaN(heightCm) || weight <= 0 || heightCm <= 0) {
+      updateField("bmi", ""); // Clear BMI if inputs are invalid
+      return null;
     }
+
+    // Convert height from centimeters to meters
+    const heightM = heightCm / 100;
+    // Calculate BMI using the standard formula
+    const bmiValue = weight / (heightM * heightM);
+    // Format to one decimal place for display
+    const bmiFormatted = bmiValue.toFixed(1);
+
+    updateField("bmi", bmiFormatted);
+    return bmiFormatted;
   };
 
   // Format date for display
@@ -669,7 +684,7 @@ export function EnhancedPrescriptionForm({
                             <Activity className="h-4 w-4" />
                             Vital Signs and Anthropometry
                           </Label>
-                          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg">
                             <div>
                               <Label htmlFor="weight" className="text-xs">
                                 Weight (kg)
@@ -717,7 +732,7 @@ export function EnhancedPrescriptionForm({
                             <div>
                               <Label htmlFor="pulseRate" className="text-xs">
                                 <Heart className="h-3 w-3 inline ml-1 text-rose-500" />
-                                Pulse
+                                PR
                               </Label>
                               <Input
                                 id="pulseRate"
@@ -730,11 +745,46 @@ export function EnhancedPrescriptionForm({
                               />
                             </div>
                             <div>
+                              <Label htmlFor="heartRate" className="text-xs">
+                                <Heart className="h-3 w-3 inline ml-1 text-red-500" />
+                                HR
+                              </Label>
+                              <Input
+                                id="heartRate"
+                                value={editablePrescription.heartRate || ""}
+                                onChange={(e) =>
+                                  updateField("heartRate", e.target.value)
+                                }
+                                className="mt-1 text-sm"
+                                placeholder="72"
+                              />
+                            </div>
+                            <div>
+                              <Label
+                                htmlFor="respiratoryRate"
+                                className="text-xs"
+                              >
+                                <Activity className="h-3 w-3 inline ml-1 text-blue-500" />
+                                RP
+                              </Label>
+                              <Input
+                                id="respiratoryRate"
+                                value={
+                                  editablePrescription.respiratoryRate || ""
+                                }
+                                onChange={(e) =>
+                                  updateField("respiratoryRate", e.target.value)
+                                }
+                                className="mt-1 text-sm"
+                                placeholder="16"
+                              />
+                            </div>
+                            <div>
                               <Label
                                 htmlFor="bloodPressure"
                                 className="text-xs"
                               >
-                                Blood Pressure
+                                BP
                               </Label>
                               <Input
                                 id="bloodPressure"
@@ -747,18 +797,26 @@ export function EnhancedPrescriptionForm({
                               />
                             </div>
                             <div>
-                              <Label htmlFor="temperature" className="text-xs">
-                                <Thermometer className="h-3 w-3 inline ml-1 text-amber-500" />
-                                Temperature
+                              <Label
+                                htmlFor="oxygenSaturation"
+                                className="text-xs"
+                              >
+                                <Activity className="h-3 w-3 inline ml-1 text-green-500" />
+                                SpO2
                               </Label>
                               <Input
-                                id="temperature"
-                                value={editablePrescription.temperature || ""}
+                                id="oxygenSaturation"
+                                value={
+                                  editablePrescription.oxygenSaturation || ""
+                                }
                                 onChange={(e) =>
-                                  updateField("temperature", e.target.value)
+                                  updateField(
+                                    "oxygenSaturation",
+                                    e.target.value
+                                  )
                                 }
                                 className="mt-1 text-sm"
-                                placeholder="36.8"
+                                placeholder="98"
                               />
                             </div>
                           </div>
@@ -810,89 +868,42 @@ export function EnhancedPrescriptionForm({
                             Search and Add Tests
                           </Label>
                           <div className="space-y-4">
-                            <SmartTestSearch
-                              onChange={(value, test) => {
-                                if (value && test) {
-                                  // Add the selected test to the medicalExams array
-                                  const currentExams =
-                                    editablePrescription.medicalExams || [];
-                                  if (!currentExams.includes(value)) {
-                                    updateField("medicalExams", [
-                                      ...currentExams,
-                                      value,
-                                    ]);
-                                  }
-                                  // Also update the selectedExams set for UI
-                                  const newSelectedExams = new Set(
-                                    selectedExams
-                                  );
-                                  newSelectedExams.add(test.id);
-                                  setSelectedExams(newSelectedExams);
-                                }
+                            <TestSearchForm
+                              mode="multiple"
+                              selectedTests={selectedTestObjects}
+                              onTestsAdd={(tests) => {
+                                setSelectedTestObjects(tests);
+                                // Update both the medicalExams array and selectedExams set
+                                const testNames = tests.map(
+                                  (test) => test.name
+                                );
+                                updateField("medicalExams", testNames);
+                                const newSelectedExams = new Set(
+                                  tests.map((test) => test.id)
+                                );
+                                setSelectedExams(newSelectedExams);
                               }}
                               placeholder="Search for laboratory tests, imaging, or procedures..."
-                              className="w-full"
+                              showQuickAdd={true}
+                              showFilters={true}
                             />
 
-                            {/* Show selected tests */}
-                            {(editablePrescription.medicalExams?.length || 0) >
-                              0 && (
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                  Selected Tests:
+                            {/* Test Summary */}
+                            {selectedTestObjects.length > 0 && (
+                              <div className="pt-2 border-t">
+                                <Label className="text-xs text-muted-foreground mb-2 block">
+                                  Test Summary:
                                 </Label>
-                                <div className="flex flex-wrap gap-2">
-                                  {(
-                                    editablePrescription.medicalExams || []
-                                  ).map((testName, index) => (
-                                    <Badge
-                                      key={`selected-${index}`}
-                                      variant="secondary"
-                                      className="flex items-center gap-1"
-                                    >
-                                      <FlaskConical className="h-3 w-3" />
-                                      {testName}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-4 w-4 p-0 ml-1 hover:bg-transparent"
-                                        onClick={() => {
-                                          // Remove this test
-                                          const updatedExams = (
-                                            editablePrescription.medicalExams ||
-                                            []
-                                          ).filter((_, i) => i !== index);
-                                          updateField(
-                                            "medicalExams",
-                                            updatedExams
-                                          );
-
-                                          // Also remove from selectedExams set
-                                          const newSelectedExams = new Set(
-                                            selectedExams
-                                          );
-                                          // Note: We can't easily remove by name from selectedExams since it stores IDs
-                                          // This is acceptable as the UI will be in sync via the medicalExams array
-                                          setSelectedExams(newSelectedExams);
-                                        }}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <div className="flex justify-between items-center mt-3">
+                                <div className="flex justify-between items-center">
                                   <Badge variant="secondary">
-                                    {
-                                      (editablePrescription.medicalExams || [])
-                                        .length
-                                    }{" "}
-                                    test(s) selected
+                                    {selectedTestObjects.length} test(s)
+                                    selected
                                   </Badge>
                                   <Button
                                     onClick={() => {
                                       updateField("medicalExams", []);
                                       setSelectedExams(new Set());
+                                      setSelectedTestObjects([]);
                                     }}
                                     variant="outline"
                                     size="sm"
@@ -903,43 +914,6 @@ export function EnhancedPrescriptionForm({
                                 </div>
                               </div>
                             )}
-
-                            {/* Quick access to popular tests */}
-                            <div className="pt-2 border-t">
-                              <Label className="text-xs text-muted-foreground mb-2 block">
-                                Quick Access - Popular Tests:
-                              </Label>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {[
-                                  "Complete Blood Count (CBC)",
-                                  "Chest X-ray",
-                                  "Lipid Profile",
-                                  "CT Scan Brain",
-                                  "Abdominal Ultrasound",
-                                  "Electrocardiogram (ECG/EKG)",
-                                ].map((popularTest) => (
-                                  <Button
-                                    key={popularTest}
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs h-8 justify-start"
-                                    onClick={() => {
-                                      const currentExams =
-                                        editablePrescription.medicalExams || [];
-                                      if (!currentExams.includes(popularTest)) {
-                                        updateField("medicalExams", [
-                                          ...currentExams,
-                                          popularTest,
-                                        ]);
-                                      }
-                                    }}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    {popularTest}
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
                           </div>
                         </div>
 
@@ -1066,17 +1040,29 @@ export function EnhancedPrescriptionForm({
                               <SelectValue placeholder="Select Fee" />
                             </SelectTrigger>
                             <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="50,000 Afghanis">
-                                50,000 Afghanis
+                              <SelectItem value="100 Afghani">
+                                100 Afghani
                               </SelectItem>
-                              <SelectItem value="100,000 Afghanis">
-                                100,000 Afghanis
+                              <SelectItem value="150 Afghani">
+                                150 Afghani
                               </SelectItem>
-                              <SelectItem value="150,000 Afghanis">
-                                150,000 Afghanis
+                              <SelectItem value="200 Afghani">
+                                200 Afghani
                               </SelectItem>
-                              <SelectItem value="200,000 Afghanis">
-                                200,000 Afghanis
+                              <SelectItem value="250 Afghani">
+                                250 Afghani
+                              </SelectItem>
+                              <SelectItem value="300 Afghani">
+                                300 Afghani
+                              </SelectItem>
+                              <SelectItem value="350 Afghani">
+                                350 Afghai
+                              </SelectItem>
+                              <SelectItem value="400 Afghani">
+                                400 Afghani
+                              </SelectItem>
+                              <SelectItem value="500 Afghani">
+                                500 Afghani
                               </SelectItem>
                             </SelectContent>
                           </Select>

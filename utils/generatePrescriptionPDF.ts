@@ -21,29 +21,47 @@ export interface Medication {
 export interface VoicePrescription {
   _id: string;
   patientName: string;
-  patientAge: string;
-  patientGender: string;
-  allergies: string[];
-  pulseRate: string;
-  bloodPressure: string;
-  temperature: string;
-  respiratoryRate: string;
-  oxygenSaturation: string;
-  medicationUsage: string;
-  relevantPastMedicalHistory: string;
+  patientAge?: string;
+  patientGender?: string;
+  patientPhone?: string;
+  patientAddress?: string;
+  allergies?: string[];
+  currentMedications?: string[];
+  medicationUsage?: string; // Legacy field
+  pastMedicalHistory?: string;
+  familyHistory?: string;
+  socialHistory?: string;
+  chiefComplaint?: string;
+  weight?: string;
+  height?: string;
+  bmi?: string;
+  pulseRate?: string;
+  heartRate?: string;
+  bloodPressure?: string;
+  temperature?: string;
+  respiratoryRate?: string;
+  oxygenSaturation?: string;
+  physicalExam?: string;
+  medicalExams?: string[];
+  examNotes?: string;
   medicines: Medication[];
-  instructions: string;
+  instructions?: string;
+  followUp?: string;
+  restrictions?: string;
   doctorName: string;
+  doctorLicenseNumber?: string;
+  clinicName?: string;
+  clinicAddress?: string;
   date: string;
   transcription?: string;
-  source: string;
-  status: string;
+  source?: string;
+  status?: string;
 }
 
 /**
  * Helper function to format vital signs value or return "N/A" if empty
  */
-function formatVitalValue(value: string): string {
+function formatVitalValue(value?: string): string {
   if (!value || value.trim() === "") {
     return "N/A";
   }
@@ -57,9 +75,13 @@ function getVitalSignsString(prescription: VoicePrescription): string {
   const vitals = [
     `PR: ${formatVitalValue(prescription.pulseRate)} bpm`,
     `BP: ${formatVitalValue(prescription.bloodPressure)}`,
-    `HR: ${formatVitalValue(prescription.temperature)}°C`,
+    `HR: ${formatVitalValue(prescription.heartRate)} bpm`,
+    `Temp: ${formatVitalValue(prescription.temperature)}°C`,
     `RP: ${formatVitalValue(prescription.respiratoryRate)}/min`,
     `SpO₂: ${formatVitalValue(prescription.oxygenSaturation)}%`,
+    `Weight: ${formatVitalValue(prescription.weight)} kg`,
+    `Height: ${formatVitalValue(prescription.height)} cm`,
+    `BMI: ${formatVitalValue(prescription.bmi)}`,
   ];
 
   return vitals.join(" | ");
@@ -73,7 +95,13 @@ function getPatientInfoString(prescription: VoicePrescription): string {
     `Name: ${prescription.patientName || "N/A"}`,
     `Age: ${prescription.patientAge || "N/A"}`,
     `Gender: ${prescription.patientGender || "N/A"}`,
+    `Phone: ${prescription.patientPhone || "N/A"}`,
     `Status: ${prescription.status || "N/A"}`,
+    `Date: ${
+      prescription.date
+        ? formatJalali(new Date(prescription.date), "yyyy/MM/dd")
+        : formatJalali(new Date(), "yyyy/MM/dd")
+    }`,
   ];
 
   return parts.join(" | ");
@@ -260,11 +288,11 @@ export async function generatePrescriptionPDF(
   const leftStartX = 50;
   let leftY = y + 15;
 
-  // Hospital Name (English) - Bold
+  // Hospital/Clinic Name (English) - Bold
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(primary[0], primary[1], primary[2]);
-  doc.text("Kabul Atlas Hospital", leftStartX, leftY);
+  doc.text(prescription.clinicName || "Medical Center", leftStartX, leftY);
 
   leftY += 18;
 
@@ -272,20 +300,27 @@ export async function generatePrescriptionPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-  doc.text("Dr Mohammad Mustafa", leftStartX, leftY);
+  doc.text(prescription.doctorName, leftStartX, leftY);
 
   leftY += 14;
+
+  // License Number (if available)
+  if (prescription.doctorLicenseNumber) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.text(`License: ${prescription.doctorLicenseNumber}`, leftStartX, leftY);
+    leftY += 12;
+  }
 
   // Qualifications (English) - Multiple lines
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
 
   const englishQualifications = [
-    "Consultant Neontologist and Pediatrician",
-    "MBBS: Isra University Hyderabad",
-    "Md: Pediatric Medicine, The Children Hospital Lahore,",
-    "University of Health Sciences",
-    "MRCPCH 1 & 2: Royal College of London",
+    "Consultant Physician",
+    "Medical Doctor (MD)",
+    "Licensed Healthcare Provider",
   ];
 
   englishQualifications.forEach((line, index) => {
@@ -296,9 +331,19 @@ export async function generatePrescriptionPDF(
   const rightStartX = pageWidth - 50;
   let rightY = y + 15;
 
-  // Hospital Name (Persian) - Bold
+  // Hospital/Clinic Name (Persian) - Bold
   doc.setTextColor(primary[0], primary[1], primary[2]);
-  addPersianTextToPDF(doc, "شفاخانه کابل اطلس", rightStartX, rightY, {
+  const clinicNamePersian =
+    prescription.clinicName === "Specialty Clinic"
+      ? "کلینیک تخصصی"
+      : prescription.clinicName === "Imam Reza Hospital"
+      ? "شفاخانه امام رضا"
+      : prescription.clinicName === "Noor Medical Center"
+      ? "مرکز طبی نور"
+      : prescription.clinicName === "Children's Hospital"
+      ? "شفاخانه کودکان"
+      : "مرکز طبی";
+  addPersianTextToPDF(doc, clinicNamePersian, rightStartX, rightY, {
     align: "right",
     style: "normal",
     fontSize: 16,
@@ -308,7 +353,17 @@ export async function generatePrescriptionPDF(
 
   // Doctor Name (Persian)
   doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-  addPersianTextToPDF(doc, "داکتر محمد مصطفی", rightStartX, rightY, {
+  const doctorNamePersian =
+    prescription.doctorName === "Dr. Ahmad Farid"
+      ? "داکتر احمد فرید"
+      : prescription.doctorName === "Dr. Maryam Hosseini"
+      ? "داکتر مریم حسینی"
+      : prescription.doctorName === "Dr. Ali Rezaei"
+      ? "داکتر علی رضایی"
+      : prescription.doctorName === "Dr. Sara Mohammadi"
+      ? "داکتر سارا محمدی"
+      : prescription.doctorName;
+  addPersianTextToPDF(doc, doctorNamePersian, rightStartX, rightY, {
     align: "right",
     style: "normal",
     fontSize: 12,
@@ -316,15 +371,30 @@ export async function generatePrescriptionPDF(
 
   rightY += 14;
 
+  // License Number (Persian)
+  if (prescription.doctorLicenseNumber) {
+    doc.setFontSize(8);
+    addPersianTextToPDF(
+      doc,
+      `جواز: ${prescription.doctorLicenseNumber}`,
+      rightStartX,
+      rightY,
+      {
+        align: "right",
+        style: "normal",
+        fontSize: 8,
+      }
+    );
+    rightY += 12;
+  }
+
   // Qualifications (Persian) - Multiple lines
   doc.setFontSize(8);
 
   const persianQualifications = [
-    "د نوي زېږېدلو ماشومانو سلاکار ډاکټر او د ماشومانو متخصص",
-    "ایم بی بی اس: د اسرأ پوهنتون، حیدراباد",
-    "امی دی : د ماشومانو طب، د ماشومانو روغتون لاهور،",
-    "د روغتیا علومو پوهنتون",
-    "ایم ار سی پی ۱ او ۲: د لندن شاهي کالج",
+    "داکتر معالج متخصص",
+    "دکتر طب (MD)",
+    "ارائه دهنده مجاز خدمات صحی",
   ];
 
   persianQualifications.forEach((line, index) => {
@@ -411,6 +481,7 @@ export async function generatePrescriptionPDF(
     `Name: ${prescription.patientName || "N/A"}`,
     `Age: ${prescription.patientAge || "N/A"}`,
     `Gender: ${prescription.patientGender || "N/A"}`,
+    `Phone: ${prescription.patientPhone || "N/A"}`,
     `Status: ${prescription.status || "N/A"}`,
     `Date: ${formattedDate}`,
   ];
@@ -442,17 +513,24 @@ export async function generatePrescriptionPDF(
   const hasVitalSigns = [
     prescription.pulseRate,
     prescription.bloodPressure,
+    prescription.heartRate,
     prescription.temperature,
     prescription.respiratoryRate,
     prescription.oxygenSaturation,
+    prescription.weight,
+    prescription.height,
+    prescription.bmi,
   ].some((v) => v && v.trim() !== "");
 
   const hasAllergies =
     prescription.allergies && prescription.allergies.length > 0;
-  const hasMedicationUsage =
-    prescription.medicationUsage && prescription.medicationUsage.trim() !== "";
+  const hasCurrentMedications =
+    (prescription.currentMedications &&
+      prescription.currentMedications.length > 0) ||
+    (prescription.medicationUsage &&
+      prescription.medicationUsage.trim() !== "");
 
-  if (hasVitalSigns || hasAllergies || hasMedicationUsage) {
+  if (hasVitalSigns || hasAllergies || hasCurrentMedications) {
     drawSectionHeader(
       "Vital Signs & Clinical Data",
       "علائم حیاتی و داده‌های بالینی"
@@ -475,7 +553,7 @@ export async function generatePrescriptionPDF(
 
     // Allergies - with bilingual support
     if (hasAllergies) {
-      const allergiesText = prescription.allergies.join(", ");
+      const allergiesText = prescription.allergies?.join(", ") || "";
       doc.setFont("helvetica", "bold");
       doc.setTextColor(primary[0], primary[1], primary[2]);
       doc.text("Allergies:", 60, y);
@@ -501,23 +579,33 @@ export async function generatePrescriptionPDF(
     }
 
     // Current Medications - with bilingual support
-    if (hasMedicationUsage) {
+    if (hasCurrentMedications) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(primary[0], primary[1], primary[2]);
       doc.text("Current Medications:", 60, y);
 
-      const medicationUsageContainsPersian = hasPersianOrArabic(
-        prescription.medicationUsage
-      );
+      // Handle both new array format and legacy string format
+      let medicationsText = "";
+      if (
+        prescription.currentMedications &&
+        prescription.currentMedications.length > 0
+      ) {
+        medicationsText = prescription.currentMedications.join(", ");
+      } else if (prescription.medicationUsage) {
+        medicationsText = prescription.medicationUsage;
+      }
+
+      const medicationUsageContainsPersian =
+        hasPersianOrArabic(medicationsText);
 
       if (medicationUsageContainsPersian) {
-        addPersianTextToPDF(doc, prescription.medicationUsage, 60, (y += 14), {
+        addPersianTextToPDF(doc, medicationsText, 60, (y += 14), {
           style: "normal",
         });
       } else {
         doc.setFont("helvetica", "normal");
         doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-        doc.text(prescription.medicationUsage, 60, (y += 14));
+        doc.text(medicationsText, 60, (y += 14));
       }
 
       addPersianTextToPDF(doc, "دواهای فعلی:", pageWidth - 60, y, {
@@ -526,6 +614,254 @@ export async function generatePrescriptionPDF(
       });
 
       y += 20;
+    }
+
+    addSeparator();
+  }
+
+  // --- CHIEF COMPLAINT ---
+  if (
+    prescription.chiefComplaint &&
+    prescription.chiefComplaint.trim() !== ""
+  ) {
+    drawSectionHeader("Chief Complaint", "شکایت اصلی");
+    y += 10;
+
+    const chiefComplaintContainsPersian = hasPersianOrArabic(
+      prescription.chiefComplaint
+    );
+
+    const complaintLines = doc.splitTextToSize(
+      prescription.chiefComplaint,
+      pageWidth - 120
+    );
+
+    if (chiefComplaintContainsPersian) {
+      complaintLines.forEach((line: string, index: number) => {
+        addPersianTextToPDF(doc, line, 60, y + index * 12, { style: "normal" });
+      });
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+      doc.text(complaintLines, 60, y);
+    }
+
+    y += complaintLines.length * 12 + 10;
+    addSeparator();
+  }
+
+  // --- MEDICAL HISTORY ---
+  const hasMedicalHistory =
+    (prescription.pastMedicalHistory &&
+      prescription.pastMedicalHistory.trim() !== "") ||
+    (prescription.familyHistory && prescription.familyHistory.trim() !== "") ||
+    (prescription.socialHistory && prescription.socialHistory.trim() !== "");
+
+  if (hasMedicalHistory) {
+    drawSectionHeader("Medical History", "تاریخچه طبی");
+    y += 10;
+
+    if (
+      prescription.pastMedicalHistory &&
+      prescription.pastMedicalHistory.trim() !== ""
+    ) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Past Medical History:", 60, y);
+
+      const pastHistoryLines = doc.splitTextToSize(
+        prescription.pastMedicalHistory,
+        pageWidth - 120
+      );
+
+      const pastHistoryContainsPersian = hasPersianOrArabic(
+        prescription.pastMedicalHistory
+      );
+
+      if (pastHistoryContainsPersian) {
+        pastHistoryLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(pastHistoryLines, 60, y + 14);
+      }
+
+      y += pastHistoryLines.length * 12 + 20;
+    }
+
+    if (
+      prescription.familyHistory &&
+      prescription.familyHistory.trim() !== ""
+    ) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Family History:", 60, y);
+
+      const familyHistoryLines = doc.splitTextToSize(
+        prescription.familyHistory,
+        pageWidth - 120
+      );
+
+      const familyHistoryContainsPersian = hasPersianOrArabic(
+        prescription.familyHistory
+      );
+
+      if (familyHistoryContainsPersian) {
+        familyHistoryLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(familyHistoryLines, 60, y + 14);
+      }
+
+      y += familyHistoryLines.length * 12 + 20;
+    }
+
+    if (
+      prescription.socialHistory &&
+      prescription.socialHistory.trim() !== ""
+    ) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Social History:", 60, y);
+
+      const socialHistoryLines = doc.splitTextToSize(
+        prescription.socialHistory,
+        pageWidth - 120
+      );
+
+      const socialHistoryContainsPersian = hasPersianOrArabic(
+        prescription.socialHistory
+      );
+
+      if (socialHistoryContainsPersian) {
+        socialHistoryLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(socialHistoryLines, 60, y + 14);
+      }
+
+      y += socialHistoryLines.length * 12 + 20;
+    }
+
+    addSeparator();
+  }
+
+  // --- PHYSICAL EXAMINATION ---
+  if (prescription.physicalExam && prescription.physicalExam.trim() !== "") {
+    drawSectionHeader("Physical Examination", "معاینه فزیکی");
+    y += 10;
+
+    const physicalExamContainsPersian = hasPersianOrArabic(
+      prescription.physicalExam
+    );
+
+    const physicalExamLines = doc.splitTextToSize(
+      prescription.physicalExam,
+      pageWidth - 120
+    );
+
+    if (physicalExamContainsPersian) {
+      physicalExamLines.forEach((line: string, index: number) => {
+        addPersianTextToPDF(doc, line, 60, y + index * 12, { style: "normal" });
+      });
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+      doc.text(physicalExamLines, 60, y);
+    }
+
+    y += physicalExamLines.length * 12 + 10;
+    addSeparator();
+  }
+
+  // --- MEDICAL EXAMS & TESTS ---
+  const hasMedicalExams =
+    (prescription.medicalExams && prescription.medicalExams.length > 0) ||
+    (prescription.examNotes && prescription.examNotes.trim() !== "");
+
+  if (hasMedicalExams) {
+    drawSectionHeader("Laboratory Tests and Imaging", "آزمایشات و تصویربرداری");
+    y += 10;
+
+    if (prescription.medicalExams && prescription.medicalExams.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Ordered Tests:", 60, y);
+
+      const testsText = prescription.medicalExams.join(", ");
+      const testsContainPersian = hasPersianOrArabic(testsText);
+
+      if (testsContainPersian) {
+        addPersianTextToPDF(doc, testsText, 60, (y += 14), {
+          style: "normal",
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(testsText, 60, (y += 14));
+      }
+
+      addPersianTextToPDF(doc, "آزمایشات درخواستی:", pageWidth - 60, y, {
+        align: "right",
+        style: "normal",
+      });
+
+      y += 20;
+    }
+
+    if (prescription.examNotes && prescription.examNotes.trim() !== "") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Test Instructions:", 60, y);
+
+      const examNotesLines = doc.splitTextToSize(
+        prescription.examNotes,
+        pageWidth - 120
+      );
+
+      const examNotesContainPersian = hasPersianOrArabic(
+        prescription.examNotes
+      );
+
+      if (examNotesContainPersian) {
+        examNotesLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(examNotesLines, 60, y + 14);
+      }
+
+      y += examNotesLines.length * 12 + 10;
     }
 
     addSeparator();
@@ -641,61 +977,151 @@ export async function generatePrescriptionPDF(
         }
       }
 
+      // Show additional medication details if available
+      const additionalDetails = [];
+      if (med.form && med.form.trim() !== "") {
+        additionalDetails.push(`Form: ${med.form}`);
+      }
+      if (med.route && med.route.trim() !== "") {
+        additionalDetails.push(`Route: ${med.route}`);
+      }
+      if (med.timing && med.timing.trim() !== "") {
+        additionalDetails.push(`Timing: ${med.timing}`);
+      }
+      if (med.notes && med.notes.trim() !== "") {
+        additionalDetails.push(`Notes: ${med.notes}`);
+      }
+
+      if (additionalDetails.length > 0) {
+        y += 12;
+        const detailsText = additionalDetails.join(" | ");
+        const detailsContainPersian = hasPersianOrArabic(detailsText);
+
+        if (detailsContainPersian) {
+          addPersianTextToPDF(doc, detailsText, 90, y, {
+            maxWidth: 350,
+            style: "italic",
+            fontSize: 7,
+          });
+        } else {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(7);
+          doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+          doc.text(detailsText, 90, y, {
+            maxWidth: 350,
+          });
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+        }
+      }
+
       y += 16;
     });
   }
   addSeparator();
 
   // --- ADDITIONAL INSTRUCTIONS (with bilingual support) ---
-  if (prescription.instructions) {
+  const hasAdditionalInstructions =
+    (prescription.instructions && prescription.instructions.trim() !== "") ||
+    (prescription.followUp && prescription.followUp.trim() !== "") ||
+    (prescription.restrictions && prescription.restrictions.trim() !== "");
+
+  if (hasAdditionalInstructions) {
     drawSectionHeader("Additional Instructions", "دستورات اضافی");
     y += 10;
 
-    const instructionsContainPersian = hasPersianOrArabic(
-      prescription.instructions
-    );
+    if (prescription.instructions && prescription.instructions.trim() !== "") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("General Instructions:", 60, y);
 
-    const instructionLines = doc.splitTextToSize(
-      prescription.instructions,
-      pageWidth - 120
-    );
+      const instructionsContainPersian = hasPersianOrArabic(
+        prescription.instructions
+      );
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(primary[0], primary[1], primary[2]);
-    doc.text("Instructions:", 60, y);
+      const instructionLines = doc.splitTextToSize(
+        prescription.instructions,
+        pageWidth - 120
+      );
 
-    if (instructionsContainPersian) {
-      doc.setFontSize(9);
-      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+      if (instructionsContainPersian) {
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
 
-      instructionLines.forEach((line: string, index: number) => {
-        addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
-          style: "normal",
+        instructionLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
         });
-      });
-    } else {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-      doc.text(instructionLines, 60, y + 14);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(instructionLines, 60, y + 14);
+      }
+
+      y += instructionLines.length * 12 + 20;
     }
 
-    addPersianTextToPDF(doc, "دستورات اضافی:", pageWidth - 60, y, {
-      align: "right",
-      style: "normal",
-    });
+    if (prescription.followUp && prescription.followUp.trim() !== "") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Follow-up Time:", 60, y);
 
-    if (instructionsContainPersian) {
-      instructionLines.forEach((line: string, index: number) => {
-        addPersianTextToPDF(doc, line, pageWidth - 60, y + 14 + index * 12, {
-          align: "right",
+      const followUpContainPersian = hasPersianOrArabic(prescription.followUp);
+
+      if (followUpContainPersian) {
+        addPersianTextToPDF(doc, prescription.followUp, 60, (y += 14), {
           style: "normal",
         });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(prescription.followUp, 60, (y += 14));
+      }
+
+      addPersianTextToPDF(doc, "زمان مراجعه:", pageWidth - 60, y, {
+        align: "right",
+        style: "normal",
       });
+
+      y += 20;
     }
 
-    y += instructionLines.length * 12 + 10;
+    if (prescription.restrictions && prescription.restrictions.trim() !== "") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primary[0], primary[1], primary[2]);
+      doc.text("Restrictions and Precautions:", 60, y);
+
+      const restrictionsContainPersian = hasPersianOrArabic(
+        prescription.restrictions
+      );
+
+      const restrictionLines = doc.splitTextToSize(
+        prescription.restrictions,
+        pageWidth - 120
+      );
+
+      if (restrictionsContainPersian) {
+        restrictionLines.forEach((line: string, index: number) => {
+          addPersianTextToPDF(doc, line, 60, y + 14 + index * 12, {
+            style: "normal",
+          });
+        });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+        doc.text(restrictionLines, 60, y + 14);
+      }
+
+      y += restrictionLines.length * 12 + 10;
+    }
+
     addSeparator();
   }
 
@@ -808,14 +1234,35 @@ export async function generatePrescriptionPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(primary[0], primary[1], primary[2]);
-  doc.text("Kabul Atlas Hospital", pageWidth / 2, footerY - 20, {
-    align: "center",
-  });
+  doc.text(
+    prescription.clinicName || "Medical Center",
+    pageWidth / 2,
+    footerY - 20,
+    {
+      align: "center",
+    }
+  );
 
-  addPersianTextToPDF(doc, "شفاخانه کابل اطلس", pageWidth / 2, footerY - 10, {
-    align: "center",
-    style: "normal",
-  });
+  const clinicNamePersianFooter =
+    prescription.clinicName === "Specialty Clinic"
+      ? "کلینیک تخصصی"
+      : prescription.clinicName === "Imam Reza Hospital"
+      ? "شفاخانه امام رضا"
+      : prescription.clinicName === "Noor Medical Center"
+      ? "مرکز طبی نور"
+      : prescription.clinicName === "Children's Hospital"
+      ? "شفاخانه کودکان"
+      : "مرکز طبی";
+  addPersianTextToPDF(
+    doc,
+    clinicNamePersianFooter,
+    pageWidth / 2,
+    footerY - 10,
+    {
+      align: "center",
+      style: "normal",
+    }
+  );
 
   // Save
   let prescriptionDate: Date;

@@ -1,3 +1,4 @@
+// components/SmartMdedicatinSearch.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -83,6 +84,7 @@ export function SmartMedicationSearch({
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [isSelecting, setIsSelecting] = useState(false); // New state to track selection
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Test database on mount
@@ -110,6 +112,13 @@ export function SmartMedicationSearch({
       setSearchHistory([]);
     }
   }, []);
+
+  // Sync searchTerm with external value
+  useEffect(() => {
+    if (value !== undefined && !isSelecting) {
+      setSearchTerm(value);
+    }
+  }, [value, isSelecting]);
 
   const saveToHistory = (term: string) => {
     if (!term.trim()) return;
@@ -208,7 +217,7 @@ export function SmartMedicationSearch({
       setSuggestions(combined.slice(0, 15));
 
       // Auto-open popover if we have suggestions
-      if (combined.length > 0 && !open) {
+      if (combined.length > 0 && !open && !isSelecting) {
         setOpen(true);
       }
     } catch (error) {
@@ -225,6 +234,11 @@ export function SmartMedicationSearch({
       clearTimeout(debounceTimer.current);
     }
 
+    // Don't search if we're in the middle of selecting
+    if (isSelecting) {
+      return;
+    }
+
     debounceTimer.current = setTimeout(() => {
       searchMedications(searchTerm);
     }, 300);
@@ -234,13 +248,15 @@ export function SmartMedicationSearch({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [searchTerm]);
+  }, [searchTerm, isSelecting]);
 
   const handleSelect = (suggestion: any) => {
     console.log("Selected suggestion:", suggestion);
+    setIsSelecting(true); // Mark that we're selecting
     const selectedValue = suggestion.label;
     setSearchTerm(selectedValue);
-    setOpen(false);
+    setOpen(false); // Ensure popover closes
+    setSuggestions([]); // Clear suggestions
     saveToHistory(selectedValue);
 
     if (onChange) {
@@ -250,30 +266,49 @@ export function SmartMedicationSearch({
     if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
       onSuggestionSelect(suggestion.data);
     }
+
+    // Reset selecting state after a short delay
+    setTimeout(() => {
+      setIsSelecting(false);
+    }, 100);
   };
 
   const clearSearch = () => {
+    setIsSelecting(true);
     setSearchTerm("");
     setSuggestions([]);
     setOpen(false);
     if (onChange) {
       onChange("", undefined);
     }
+    setTimeout(() => {
+      setIsSelecting(false);
+    }, 100);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setIsSelecting(false); // User is typing, not selecting
     setSearchTerm(value);
 
     // Open popover when user starts typing
     if (value.trim() && !open) {
       setOpen(true);
+    } else if (!value.trim()) {
+      setOpen(false);
     }
   };
 
   const handleFocus = () => {
     if (searchTerm.trim()) {
       setOpen(true);
+    }
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    // Don't open if we just selected something
+    if (!isSelecting) {
+      setOpen(newOpen);
     }
   };
 
@@ -297,7 +332,7 @@ export function SmartMedicationSearch({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open && !isSelecting} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <div className="relative">
             <div className="relative">
@@ -452,9 +487,6 @@ export function SmartMedicationSearch({
                             </Badge>
                             {(() => {
                               const medication = getMedicationFromData(
-                                suggestion.data
-                              );
-                              const aiSuggestion = getAISuggestionFromData(
                                 suggestion.data
                               );
                               return (

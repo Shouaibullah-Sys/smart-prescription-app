@@ -4,12 +4,16 @@ export interface Test {
   id: string;
   name: string;
   category: string[];
-  type: "Laboratory" | "Imaging" | "Special Test";
+  type: "Laboratory" | "Imaging" | "Special Test" | "Procedure";
   preparation?: string[];
   fasting_required?: boolean;
   description?: string;
   normal_range?: string;
   popular_score: number;
+  insurance_coverage?: boolean;
+  cost_estimate?: number;
+  turnaround_time?: string;
+  sample_type?: string;
 }
 
 export class TestDatabase {
@@ -848,20 +852,28 @@ export class TestDatabase {
   getSuggestions(query: string): Array<{
     id: string;
     name: string;
-    category: string;
+    category: string[];
     type: string;
     preparation?: string[];
     fasting_required?: boolean;
+    insurance_coverage?: boolean;
+    cost_estimate?: number;
+    turnaround_time?: string;
+    sample_type?: string;
   }> {
     const results = this.search(query);
 
     return results.slice(0, 15).map((test) => ({
       id: test.id,
       name: test.name,
-      category: test.category[0] || "General",
+      category: test.category,
       type: test.type,
       preparation: test.preparation,
       fasting_required: test.fasting_required,
+      insurance_coverage: test.insurance_coverage,
+      cost_estimate: test.cost_estimate,
+      turnaround_time: test.turnaround_time,
+      sample_type: test.sample_type,
     }));
   }
 
@@ -878,6 +890,16 @@ export class TestDatabase {
       test.category.some((cat) =>
         cat.toLowerCase().includes(category.toLowerCase())
       )
+    );
+  }
+
+  getByIds(ids: string[]): Test[] {
+    return this.tests.filter((test) => ids.includes(test.id));
+  }
+
+  getByNames(names: string[]): Test[] {
+    return this.tests.filter((test) =>
+      names.some((name) => test.name.toLowerCase().includes(name.toLowerCase()))
     );
   }
 }
