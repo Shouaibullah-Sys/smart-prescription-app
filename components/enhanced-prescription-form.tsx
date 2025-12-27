@@ -1241,44 +1241,18 @@ export function EnhancedPrescriptionForm({
                                         </Select>
                                       </td>
                                       <td className="p-3">
-                                        <Select
-                                          value={medicine.notes || ""}
-                                          onValueChange={(value) =>
+                                        <Input
+                                          value={medicine.instructions || ""}
+                                          onChange={(e) =>
                                             updateMedicine(
                                               index,
-                                              "notes",
-                                              value
+                                              "instructions",
+                                              e.target.value
                                             )
                                           }
-                                        >
-                                          <SelectTrigger className="w-full text-sm h-9">
-                                            <SelectValue placeholder="Instructions" />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
-                                            <SelectItem value="Before meal">
-                                              {translateTiming("Before meal")}
-                                            </SelectItem>
-                                            <SelectItem value="After meal">
-                                              {translateTiming("After meal")}
-                                            </SelectItem>
-                                            <SelectItem value="With food">
-                                              {translateTiming("With food")}
-                                            </SelectItem>
-                                            <SelectItem value="On empty stomach">
-                                              {translateTiming(
-                                                "On empty stomach"
-                                              )}
-                                            </SelectItem>
-                                            <SelectItem value="At bedtime">
-                                              {translateTiming("At bedtime")}
-                                            </SelectItem>
-                                            <SelectItem value="As needed">
-                                              {translateTiming(
-                                                "As needed_display"
-                                              )}
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
+                                          placeholder="Enter instructions"
+                                          className="w-full text-sm h-9"
+                                        />
                                       </td>
                                       <td className="p-3">
                                         <Tooltip>
