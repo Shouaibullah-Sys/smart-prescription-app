@@ -714,7 +714,7 @@ export async function generatePrescriptionPDF(
     ) {
       sections.push({
         type: "list" as const,
-        title: "Investigation",
+        title: "Lab Exams",
         items: prescription.medicalExams,
       });
     }
