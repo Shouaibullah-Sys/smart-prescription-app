@@ -51,7 +51,7 @@ interface SearchSuggestion {
   description: string;
   confidence: number;
   category: string;
-  value: string; // Add this for CommandItem value
+  value: string;
 }
 
 interface SmartMedicationSearchProps {
@@ -84,9 +84,9 @@ export function SmartMedicationSearch({
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [selectedSuggestion, setSelectedSuggestion] =
-    useState<SearchSuggestion | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load search history from localStorage
@@ -153,14 +153,12 @@ export function SmartMedicationSearch({
             term,
             context
           );
-          console.log("AI suggestions:", smartSuggestions.length);
         } catch (aiError) {
           console.error("AI service failed, using local database:", aiError);
         }
 
         // Always fall back to local database
         const localSuggestions = medicationDB.getSuggestions(term);
-        console.log("Local suggestions:", localSuggestions.length);
 
         let combined: SearchSuggestion[] = [];
 
@@ -176,7 +174,7 @@ export function SmartMedicationSearch({
               category: Array.isArray(s.medication.category)
                 ? s.medication.category[0] || "General"
                 : s.medication.category || "General",
-              value: s.medication.name || "Unknown medication", // Add value property
+              value: s.medication.name || "Unknown medication",
             })
           );
         } else if (localSuggestions.length > 0) {
@@ -193,7 +191,7 @@ export function SmartMedicationSearch({
                   : Array.isArray(f.category)
                   ? f.category[0] || "General"
                   : "General",
-              value: f.name || "Unknown", // Add value property
+              value: f.name || "Unknown",
             })
           );
         }
@@ -213,7 +211,7 @@ export function SmartMedicationSearch({
                   description: "Auto-complete",
                   confidence: 0.5,
                   category: "General",
-                  value: c, // Add value property
+                  value: c,
                 })
               );
             }
@@ -222,24 +220,20 @@ export function SmartMedicationSearch({
           }
         }
 
-        console.log("Final combined suggestions:", combined.length);
         setSuggestions(combined.slice(0, 15));
 
-        // Auto-open popover if we have suggestions
-        if (combined.length > 0 && !open) {
+        // Open popover if we have suggestions
+        if (combined.length > 0) {
           setOpen(true);
-        } else if (combined.length === 0) {
-          setOpen(false);
         }
       } catch (error) {
         console.error("Search error:", error);
         setSuggestions([]);
-        setOpen(false);
       } finally {
         setIsLoading(false);
       }
     },
-    [context, open]
+    [context]
   );
 
   // Debounced search
@@ -248,7 +242,6 @@ export function SmartMedicationSearch({
       clearTimeout(debounceTimer.current);
     }
 
-    // Only search if term has actually changed and not empty
     if (searchTerm.trim()) {
       debounceTimer.current = setTimeout(() => {
         searchMedications(searchTerm);
@@ -271,13 +264,13 @@ export function SmartMedicationSearch({
 
       const selectedValue = suggestion.label;
 
-      // Set the selected suggestion
-      setSelectedSuggestion(suggestion);
+      // Mark that we're in selection mode to prevent popover from reopening
+      setIsSelecting(true);
 
-      // Update search term
+      // Update search term immediately
       setSearchTerm(selectedValue);
 
-      // Close popover
+      // Force close popover
       setOpen(false);
 
       // Clear suggestions
@@ -291,10 +284,14 @@ export function SmartMedicationSearch({
         onChange(selectedValue, suggestion.data);
       }
 
-      // Call onSuggestionSelect if provided and it's an AI suggestion
       if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
         onSuggestionSelect(suggestion.data);
       }
+
+      // Reset selection mode after a short delay
+      setTimeout(() => {
+        setIsSelecting(false);
+      }, 100);
 
       // Focus back on input
       setTimeout(() => {
@@ -305,16 +302,20 @@ export function SmartMedicationSearch({
   );
 
   const clearSearch = useCallback(() => {
+    setIsSelecting(true);
+
     setSearchTerm("");
     setSuggestions([]);
-    setSelectedSuggestion(null);
     setOpen(false);
 
     if (onChange) {
       onChange("", undefined);
     }
 
-    // Focus back on input
+    setTimeout(() => {
+      setIsSelecting(false);
+    }, 100);
+
     setTimeout(() => {
       inputRef.current?.focus();
     }, 10);
@@ -324,50 +325,40 @@ export function SmartMedicationSearch({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
 
-      // Always update internal state
+      // Update internal state
       setSearchTerm(inputValue);
 
-      // Clear selected suggestion when user starts typing
-      if (inputValue !== selectedSuggestion?.label) {
-        setSelectedSuggestion(null);
-      }
+      // Reset selection flag when user types
+      setIsSelecting(false);
 
-      // Call parent onChange with just the value
+      // Call parent onChange
       if (onChange) {
         onChange(inputValue);
       }
 
-      // Open popover if there's text
-      if (inputValue.trim()) {
+      // Open popover when user types something
+      if (inputValue.trim() && !open) {
         setOpen(true);
-      } else {
-        setOpen(false);
       }
     },
-    [onChange, selectedSuggestion]
+    [onChange, open]
   );
 
   const handleInputFocus = useCallback(() => {
-    if (searchTerm.trim() && suggestions.length > 0) {
+    // Only open if we're not selecting and we have content
+    if (!isSelecting && (searchTerm.trim() || searchHistory.length > 0)) {
       setOpen(true);
-    } else if (searchTerm.trim()) {
-      // If we have text but no suggestions, trigger search
-      searchMedications(searchTerm);
     }
-  }, [searchTerm, suggestions.length, searchMedications]);
+  }, [isSelecting, searchTerm, searchHistory.length]);
 
   const handleOpenChange = useCallback(
     (newOpen: boolean) => {
-      // Don't open if we have no search term and no suggestions
-      if (
-        !newOpen ||
-        (searchTerm.trim() && suggestions.length > 0) ||
-        searchHistory.length > 0
-      ) {
+      // Prevent opening if we just selected something
+      if (!isSelecting) {
         setOpen(newOpen);
       }
     },
-    [searchTerm, suggestions.length, searchHistory.length]
+    [isSelecting]
   );
 
   // Helper functions for type-safe data access
@@ -394,7 +385,7 @@ export function SmartMedicationSearch({
     <div className={cn("space-y-2", className)}>
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
-          <div className="relative">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -406,13 +397,21 @@ export function SmartMedicationSearch({
                 disabled={disabled}
                 className="w-full pl-10 pr-10"
                 aria-label="Medication search"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setOpen(false);
+                  }
+                }}
               />
               {searchTerm && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-transparent"
-                  onClick={clearSearch}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearSearch();
+                  }}
                   type="button"
                 >
                   <X className="h-4 w-4" />
@@ -430,11 +429,24 @@ export function SmartMedicationSearch({
           </div>
         </PopoverTrigger>
         <PopoverContent
+          ref={popoverContentRef}
           className="w-[400px] p-0"
           align="start"
           side="bottom"
           avoidCollisions={true}
           sideOffset={5}
+          onPointerDownOutside={(e) => {
+            // Prevent closing when clicking inside the popover
+            if (popoverContentRef.current?.contains(e.target as Node)) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            // Allow closing when clicking outside
+            if (!popoverContentRef.current?.contains(e.target as Node)) {
+              setOpen(false);
+            }
+          }}
         >
           <Command className="rounded-lg border shadow-md" shouldFilter={false}>
             <CommandList>
@@ -510,6 +522,7 @@ export function SmartMedicationSearch({
                             value={suggestion.value}
                             onSelect={() => handleSelect(suggestion)}
                             className="flex flex-col items-start py-3 cursor-pointer hover:bg-accent"
+                            onPointerDown={(e) => e.stopPropagation()}
                           >
                             <div className="flex items-center justify-between w-full mb-1">
                               <div className="flex items-center gap-2">
@@ -550,14 +563,6 @@ export function SmartMedicationSearch({
                                     className="text-xs bg-blue-50 text-blue-700 border-blue-200"
                                   >
                                     Local
-                                  </Badge>
-                                )}
-                                {suggestion.type === "completion" && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs bg-purple-50 text-purple-700 border-purple-200"
-                                  >
-                                    Suggestion
                                   </Badge>
                                 )}
                               </div>
@@ -629,6 +634,7 @@ export function SmartMedicationSearch({
                                 handleSelect(suggestion);
                               }}
                               className="flex items-center gap-2 py-2 px-3 cursor-pointer"
+                              onPointerDown={(e) => e.stopPropagation()}
                             >
                               <Pill className="h-4 w-4 text-muted-foreground" />
                               <span>{med.name}</span>
