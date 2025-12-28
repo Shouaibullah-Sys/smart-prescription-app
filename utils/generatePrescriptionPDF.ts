@@ -26,7 +26,6 @@ export interface VoicePrescription {
   patientName: string;
   patientAge?: string;
   patientGender?: string;
-  patientPhone?: string;
   patientAddress?: string;
   allergies?: string[];
   currentMedications?: string[];
@@ -266,10 +265,10 @@ export const defaultPDFConfig: PDFConfig = {
   typography: {
     defaultFont: "helvetica",
     fontSizes: {
-      title: 16,
-      subtitle: 14,
-      heading: 12,
-      subheading: 10,
+      title: 14,
+      subtitle: 12,
+      heading: 8,
+      subheading: 8,
       body: 10,
       small: 9,
       tiny: 8,
@@ -308,7 +307,7 @@ export const defaultPDFConfig: PDFConfig = {
     columns: 4,
     showLabels: true,
     labelStyle: "bold",
-    include: ["name", "age", "gender", "date", "weight", "height", "phone"],
+    include: ["name", "age", "gender", "date", "weight", "height"],
   },
 
   clinicalHistory: {
@@ -327,9 +326,9 @@ export const defaultPDFConfig: PDFConfig = {
 
   vitalSigns: {
     show: true,
-    gridColumns: 4,
+    gridColumns: 6,
     cell: {
-      width: 85,
+      width: 70,
       height: 28,
       gap: 4,
       borderRadius: 3,
@@ -831,20 +830,6 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // CHIEF COMPLAINT
-  if (prescription.chiefComplaint) {
-    yRight = checkPageBreak(doc, yRight, 50, config);
-    yRight = addRightColumnSection(
-      doc,
-      "chiefComplaint",
-      yRight,
-      rightColumnX,
-      rightColumnWidth,
-      prescription,
-      config
-    );
-  }
-
   // PHYSICAL EXAM
   if (prescription.physicalExam) {
     yRight = checkPageBreak(doc, yRight, 50, config);
@@ -874,10 +859,30 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // ADDITIONAL INSTRUCTIONS (Follow-up and Restrictions only) - Updated to support bilingual Restrictions
-  if (config.instructions.show && hasAdditionalInstructions(prescription)) {
+  // POST-MEDICATION SECTIONS: Chief Complaint and Follow-up/Restrictions
+  // Adding extra spacing after medications for better section separation
+  yRight += 15;
+
+  // CHIEF COMPLAINT - Positioned below medications
+  if (prescription.chiefComplaint) {
+    yRight = checkPageBreak(doc, yRight, 50, config);
+    yRight = addRightColumnSection(
+      doc,
+      "chiefComplaint",
+      yRight,
+      rightColumnX,
+      rightColumnWidth,
+      prescription,
+      config
+    );
+  }
+
+  // FOLLOW-UP, RESTRICTIONS & GENERAL INSTRUCTIONS - Positioned below Chief Complaint
+  if (
+    config.instructions.show &&
+    (hasAdditionalInstructions(prescription) || prescription.instructions)
+  ) {
     yRight = checkPageBreak(doc, yRight, 100, config);
-    yRight += 20;
     yRight = addInstructionsSection(
       doc,
       yRight,
@@ -897,18 +902,10 @@ export async function generatePrescriptionPDF(
     addSignature(doc, signatureY, pageWidth, prescription, config);
   }
 
-  // ==================== GENERAL INSTRUCTIONS AT BOTTOM ====================
+  // ==================== GENERAL INSTRUCTIONS (Integrated into main flow) ====================
 
-  if (config.instructions.show && prescription.instructions) {
-    const generalInstructionsY = pageHeight - config.footer.height - 100;
-    addGeneralInstructionsAtBottom(
-      doc,
-      generalInstructionsY,
-      pageWidth,
-      prescription,
-      config
-    );
-  }
+  // General Instructions are now handled within the Follow-up & Restrictions section
+  // to avoid overlapping content
 
   // ==================== FOOTER ====================
 
@@ -960,10 +957,7 @@ function createPatientInfoRows(
       label: "Height",
       value: prescription.height ? `${prescription.height} cm` : "N/A",
     },
-    phone: {
-      label: "Phone",
-      value: prescription.patientPhone || "N/A",
-    },
+
     address: {
       label: "Address",
       value: prescription.patientAddress || "N/A",
@@ -999,11 +993,12 @@ function addLeftColumnSection(
   y += config.layout.blockSpacing;
 
   // Content box
+  const isLabExams = section.title === "Lab Exams";
   const boxHeight =
     section.type === "list"
       ? Math.max(
           config.clinicalHistory.boxHeight,
-          section.items.length * 15 + 20
+          section.items.length * (isLabExams ? 12 : 15) + 20
         )
       : config.clinicalHistory.boxHeight;
 
@@ -1020,12 +1015,29 @@ function addLeftColumnSection(
   // Content
   if (section.type === "list") {
     doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
+    // Use smaller font size for Lab Exams to prevent overflow
+    const isLabExams = section.title === "Lab Exams";
+    const fontSize = isLabExams
+      ? config.typography.fontSizes.tiny
+      : config.typography.fontSizes.small;
+    doc.setFontSize(fontSize);
     doc.setTextColor(...config.colors.textDark);
 
+    // Use smaller line spacing for Lab Exams
+    const lineSpacing = isLabExams ? 12 : 15;
     section.items.forEach((item: string, index: number) => {
       const itemText = `${index + 1}. ${item}`;
-      doc.text(itemText, x + 10, y + 8 + index * 15);
+
+      if (isLabExams) {
+        // For Lab Exams, use text wrapping to prevent overflow
+        const maxWidth = width - 20; // Leave padding on both sides
+        const lines = doc.splitTextToSize(itemText, maxWidth);
+        lines.forEach((line: string, lineIndex: number) => {
+          doc.text(line, x + 10, y + 8 + index * lineSpacing + lineIndex * 10);
+        });
+      } else {
+        doc.text(itemText, x + 10, y + 8 + index * lineSpacing);
+      }
     });
   } else {
     const contentLines = doc.splitTextToSize(section.content, width - 20);
@@ -1174,11 +1186,41 @@ function addVitalSignsGrid(
     doc.setLineWidth(0.5);
     doc.rect(cellX, cellY, cellWidth, cellHeight, "S");
 
-    // Label
+    // Label - Using smaller font and shorter labels to prevent overflow
     doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(7); // Reduced from 9 to 7
     doc.setTextColor(...config.colors.primary);
-    doc.text(vital.label, cellX + 5, cellY + 12);
+
+    // Use abbreviated labels to prevent overflow
+    const shortLabels: Record<string, string> = {
+      "Pulse Rate": "Pulse",
+      "Blood Pressure": "BP",
+      "Heart Rate": "Heart",
+      Temperature: "Temp",
+      "Respiratory Rate": "Resp",
+      "Oxygen Saturation": "O2 Sat",
+    };
+
+    const label = shortLabels[vital.label] || vital.label;
+
+    // Truncate label if still too long
+    const maxLabelWidth = cellWidth - 10; // Leave 5px padding on each side
+    const labelWidth = doc.getTextWidth(label);
+    let displayLabel = label;
+
+    if (labelWidth > maxLabelWidth) {
+      // Find the maximum length that fits
+      let truncated = label;
+      while (
+        doc.getTextWidth(truncated + "...") > maxLabelWidth &&
+        truncated.length > 0
+      ) {
+        truncated = truncated.slice(0, -1);
+      }
+      displayLabel = truncated + (truncated.length < label.length ? "..." : "");
+    }
+
+    doc.text(displayLabel, cellX + 5, cellY + 12);
 
     // Value
     const valueText = config.vitalSigns.showUnits
@@ -1186,12 +1228,30 @@ function addVitalSignsGrid(
       : vital.value!;
 
     doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(8); // Reduced from 10 to 8
     doc.setTextColor(...config.colors.textDark);
 
+    // Truncate value if too long
+    const maxValueWidth = cellWidth - 10;
     const valueWidth = doc.getTextWidth(valueText);
-    const centeredX = cellX + (cellWidth - valueWidth) / 2;
-    doc.text(valueText, Math.max(centeredX, cellX + 5), cellY + 25);
+    let displayValue = valueText;
+
+    if (valueWidth > maxValueWidth) {
+      // Find the maximum length that fits
+      let truncated = valueText;
+      while (
+        doc.getTextWidth(truncated + "...") > maxValueWidth &&
+        truncated.length > 0
+      ) {
+        truncated = truncated.slice(0, -1);
+      }
+      displayValue =
+        truncated + (truncated.length < valueText.length ? "..." : "");
+    }
+
+    const valueTextWidth = doc.getTextWidth(displayValue);
+    const centeredX = cellX + (cellWidth - valueTextWidth) / 2;
+    doc.text(displayValue, Math.max(centeredX, cellX + 5), cellY + 22); // Adjusted Y position
   });
 
   const rows = Math.ceil(filteredVitals.length / columns);
@@ -1215,6 +1275,26 @@ function addTextContent(
   doc.text(lines, x + 10, y);
 
   y += lines.length * 12 + 20;
+  return y;
+}
+
+function addCompactTextContent(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  text: string,
+  config: PDFConfig
+): number {
+  const lines = doc.splitTextToSize(text, width - 20);
+
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.small); // Use smaller font size
+  doc.setTextColor(...config.colors.textDark);
+  doc.text(lines, x + 10, y);
+
+  // Use more compact spacing
+  y += lines.length * 10 + 12; // Reduced from 12 + 20 to 10 + 12
   return y;
 }
 
@@ -1400,49 +1480,98 @@ function addInstructionsSection(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text("Additional Instructions", x + 15, y + 5);
+  doc.text("Care Instructions", x + 15, y + 5);
 
   y += 25;
 
+  let hasContent = false;
+
   // Follow-up
   if (config.instructions.sections.followUp && prescription.followUp) {
+    hasContent = true;
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("Follow-up", x + 10, y);
+    doc.text("Follow-up:", x + 10, y);
 
     const followUpText = getInstructionField(prescription, "followUp", config);
-    y = addTextContent(
+    y += 8; // Small spacing after header
+    y = addCompactTextContent(
       doc,
-      y + config.layout.lineSpacing,
+      y,
       x + config.instructions.indent,
       width - config.instructions.indent,
       followUpText,
       config
     );
-    y += 10;
+    y += 5; // Reduced spacing after follow-up
   }
 
   // Restrictions - With bilingual support
   if (config.instructions.sections.restrictions && prescription.restrictions) {
+    hasContent = true;
+    // Add extra spacing between sections if content exists
+    if (prescription.followUp) {
+      y += 5;
+    }
+
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("Restrictions", x + 10, y);
+    doc.text("Restrictions:", x + 10, y);
 
     const restrictionsText = getInstructionField(
       prescription,
       "restrictions",
       config
     );
-    y = addTextContent(
+    y += 8; // Small spacing after header
+    y = addCompactTextContent(
       doc,
-      y + config.layout.lineSpacing,
+      y + 8, // Small spacing after header
       x + config.instructions.indent,
       width - config.instructions.indent,
       restrictionsText,
       config
     );
+  }
+
+  // General Instructions
+  if (config.instructions.sections.general && prescription.instructions) {
+    hasContent = true;
+    // Add extra spacing between sections if other content exists
+    if (prescription.followUp || prescription.restrictions) {
+      y += 5;
+    }
+
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text("General Instructions:", x + 10, y);
+
+    const instructionsText = getInstructionField(
+      prescription,
+      "instructions",
+      config
+    );
+    y += 8; // Small spacing after header
+    y = addCompactTextContent(
+      doc,
+      y + 8, // Small spacing after header
+      x + config.instructions.indent,
+      width - config.instructions.indent,
+      instructionsText,
+      config
+    );
+  }
+
+  // If no instructions exist, show a message
+  if (!hasContent) {
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text("No additional care instructions specified.", x + 12, y);
+    y += 20;
   }
 
   return y;
@@ -1455,21 +1584,33 @@ function addSignature(
   prescription: VoicePrescription,
   config: PDFConfig
 ) {
+  // Half width layout - Medical Practitioner takes right half
+  const halfWidth =
+    (pageWidth - config.page.margins.left - config.page.margins.right) / 2;
+  const rightSectionX = config.page.margins.left + halfWidth;
+
   let signatureX;
   switch (config.signature.position) {
     case "left":
-      signatureX = config.page.margins.left;
+      signatureX = rightSectionX;
       break;
     case "center":
-      signatureX = (pageWidth - config.signature.lineLength) / 2;
+      signatureX =
+        rightSectionX + (halfWidth - config.signature.lineLength) / 2;
       break;
     case "right":
       signatureX =
-        pageWidth - config.page.margins.right - config.signature.lineLength;
+        rightSectionX +
+        halfWidth -
+        config.page.margins.right -
+        config.signature.lineLength;
       break;
     default:
       signatureX =
-        pageWidth - config.page.margins.right - config.signature.lineLength;
+        rightSectionX +
+        halfWidth -
+        config.page.margins.right -
+        config.signature.lineLength;
   }
 
   // Signature line
@@ -1574,48 +1715,116 @@ function addGeneralInstructionsAtBottom(
   prescription: VoicePrescription,
   config: PDFConfig
 ): number {
-  // Calculate dynamic height based on content
-  const instructionsText = getInstructionField(
-    prescription,
-    "instructions",
-    config
-  );
-  const instructionsWidth =
-    pageWidth - config.page.margins.left - config.page.margins.right - 20;
-  const lines = doc.splitTextToSize(instructionsText, instructionsWidth);
-  const contentHeight = lines.length * 12;
-  const sectionHeight = Math.max(60, contentHeight + 25); // Minimum 60px height
+  // Half width layout - Instructions take left half, Medical Practitioner takes right half
+  const halfWidth =
+    (pageWidth - config.page.margins.left - config.page.margins.right) / 2;
+  const instructionsWidth = halfWidth - 20;
+  const generalInstructionsX = config.page.margins.left;
 
-  // Add background box for General Instructions section
+  let currentY = y;
+  const sectionSpacing = 15;
+
+  // Follow-up Section
+  if (config.instructions.sections.followUp && prescription.followUp) {
+    // Section header
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text("Follow-up", generalInstructionsX + 10, currentY);
+
+    currentY += 12;
+
+    // Follow-up content
+    const followUpText = getInstructionField(prescription, "followUp", config);
+    const followUpLines = doc.splitTextToSize(followUpText, instructionsWidth);
+
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text(followUpLines, generalInstructionsX + 10, currentY);
+
+    currentY += followUpLines.length * 10 + sectionSpacing;
+  }
+
+  // Restrictions Section
+  if (config.instructions.sections.restrictions && prescription.restrictions) {
+    // Section header
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text("Restrictions", generalInstructionsX + 10, currentY);
+
+    currentY += 12;
+
+    // Restrictions content
+    const restrictionsText = getInstructionField(
+      prescription,
+      "restrictions",
+      config
+    );
+    const restrictionsLines = doc.splitTextToSize(
+      restrictionsText,
+      instructionsWidth
+    );
+
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text(restrictionsLines, generalInstructionsX + 10, currentY);
+
+    currentY += restrictionsLines.length * 10 + sectionSpacing;
+  }
+
+  // General Instructions Section
+  if (prescription.instructions) {
+    // Section header
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text("General Instructions", generalInstructionsX + 10, currentY);
+
+    currentY += 12;
+
+    // Instructions content
+    const instructionsText = getInstructionField(
+      prescription,
+      "instructions",
+      config
+    );
+    const lines = doc.splitTextToSize(instructionsText, instructionsWidth);
+
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text(lines, generalInstructionsX + 10, currentY);
+
+    currentY += lines.length * 10;
+  }
+
+  // Calculate total height and draw background box
+  const totalHeight = currentY - y + 15;
+
+  // Add background box for all instructions section (left half only)
   doc.setFillColor(...config.colors.bgLight);
   doc.setDrawColor(...config.colors.border);
   doc.setLineWidth(0.5);
   doc.roundedRect(
-    config.page.margins.left,
-    y - 15,
-    pageWidth - config.page.margins.left - config.page.margins.right,
-    sectionHeight,
+    generalInstructionsX,
+    y - 10,
+    halfWidth,
+    totalHeight,
     3,
     3,
     "FD"
   );
 
-  // Section header
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.subheading);
-  doc.setTextColor(...config.colors.primary);
-  doc.text("General Instructions", config.page.margins.left + 10, y);
+  // Draw vertical divider line between Instructions and Medical Practitioner
+  const dividerX = generalInstructionsX + halfWidth;
+  doc.setDrawColor(...config.colors.border);
+  doc.setLineWidth(0.5);
+  doc.line(dividerX, y - 10, dividerX, y + totalHeight - 5);
 
-  y += config.layout.lineSpacing + 10;
-
-  // Instructions content
-  doc.setFont(config.typography.defaultFont, "normal");
-  doc.setFontSize(config.typography.fontSizes.body);
-  doc.setTextColor(...config.colors.textDark);
-
-  doc.text(lines, config.page.margins.left + 10, y);
-
-  return y + contentHeight + 10;
+  return currentY + 10;
 }
 
 // Export with the expected name for backward compatibility
