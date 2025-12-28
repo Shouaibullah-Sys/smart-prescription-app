@@ -30,10 +30,8 @@ export interface VoicePrescription {
   allergies?: string[];
   currentMedications?: string[];
   medicationUsage?: string;
-  pastMedicalHistory?: string;
   familyHistory?: string;
   socialHistory?: string;
-  chiefComplaint?: string;
   weight?: string;
   height?: string;
   pulseRate?: string;
@@ -46,16 +44,8 @@ export interface VoicePrescription {
   medicalExams?: string[];
   examNotes?: string;
   medicines: Medication[];
-  instructions?: string;
-  instructionsPersian?: string;
-  followUp?: string;
-  followUpPersian?: string;
-  restrictions?: string;
-  restrictionsPersian?: string;
   doctorName: string;
   doctorLicenseNumber?: string;
-  clinicName?: string;
-  clinicAddress?: string;
   date: string;
   transcription?: string;
   source?: string;
@@ -156,7 +146,6 @@ export interface PDFConfig {
       labExams: boolean;
       allergies: boolean;
       currentMeds: boolean;
-      pastMedicalHistory: boolean;
       familyHistory: boolean;
       socialHistory: boolean;
     };
@@ -191,7 +180,7 @@ export interface PDFConfig {
     };
   };
 
-  // Additional Instructions
+  // Instructions (Disabled - removed chief complaint, care instructions, restrictions, and general instructions)
   instructions: {
     show: boolean;
     sections: {
@@ -214,7 +203,6 @@ export interface PDFConfig {
   // Footer
   footer: {
     show: boolean;
-    showPrescriptionId: boolean;
     showPageNumbers: boolean;
     showDigitalNote: boolean;
     height: number;
@@ -316,12 +304,11 @@ export const defaultPDFConfig: PDFConfig = {
       labExams: true,
       allergies: true,
       currentMeds: true,
-      pastMedicalHistory: true,
       familyHistory: true,
       socialHistory: true,
     },
     boxStyle: "rounded",
-    boxHeight: 80, // Increased from 40 to 60 to give more space for Lab Exams
+    boxHeight: 90, // Increased from 80 to 90 to provide more baseline space for all sections
   },
 
   vitalSigns: {
@@ -357,11 +344,11 @@ export const defaultPDFConfig: PDFConfig = {
   },
 
   instructions: {
-    show: true,
+    show: false,
     sections: {
-      general: true,
-      followUp: true,
-      restrictions: true,
+      general: false,
+      followUp: false,
+      restrictions: false,
     },
     indent: 20,
   },
@@ -376,7 +363,6 @@ export const defaultPDFConfig: PDFConfig = {
 
   footer: {
     show: true,
-    showPrescriptionId: true,
     showPageNumbers: true,
     showDigitalNote: true,
     height: 40,
@@ -618,19 +604,6 @@ export async function generatePrescriptionPDF(
     }
   }
 
-  // Clinic Information
-  const centerX = pageWidth / 2;
-
-  // Clinic Name
-  if (prescription.clinicName) {
-    y = checkPageBreak(doc, y, 50, config);
-
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.title);
-    doc.setTextColor(...config.colors.primary);
-    doc.text(prescription.clinicName, centerX, y, { align: "center" });
-  }
-
   // ==================== PATIENT INFORMATION ====================
 
   if (config.patientInfo.show) {
@@ -741,7 +714,7 @@ export async function generatePrescriptionPDF(
     ) {
       sections.push({
         type: "list" as const,
-        title: "Lab Exams",
+        title: "Investigation",
         items: prescription.medicalExams,
       });
     }
@@ -769,17 +742,6 @@ export async function generatePrescriptionPDF(
     }
 
     if (
-      config.clinicalHistory.sections.pastMedicalHistory &&
-      prescription.pastMedicalHistory
-    ) {
-      sections.push({
-        type: "text" as const,
-        title: "Past Medical History",
-        content: prescription.pastMedicalHistory,
-      });
-    }
-
-    if (
       config.clinicalHistory.sections.familyHistory &&
       prescription.familyHistory
     ) {
@@ -803,7 +765,7 @@ export async function generatePrescriptionPDF(
 
     for (const section of sections) {
       // For Lab Exams, ensure we have enough space and check for page breaks more aggressively
-      const requiredSpace = section.title === "Lab Exams" ? 120 : 100;
+      const requiredSpace = section.title === "Lab Exams" ? 140 : 100; // Increased from 120 to 140 for better spacing
       yLeft = checkPageBreak(doc, yLeft, requiredSpace, config);
       yLeft = addLeftColumnSection(
         doc,
@@ -861,39 +823,9 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // POST-MEDICATION SECTIONS: Chief Complaint and Follow-up/Restrictions
+  // POST-MEDICATION SECTIONS: Removed chief complaint, care instructions, restrictions, and general instructions
   // Adding extra spacing after medications for better section separation
   yRight += 15;
-
-  // CHIEF COMPLAINT - Positioned below medications
-  if (prescription.chiefComplaint) {
-    yRight = checkPageBreak(doc, yRight, 50, config);
-    yRight = addRightColumnSection(
-      doc,
-      "chiefComplaint",
-      yRight,
-      rightColumnX,
-      rightColumnWidth,
-      prescription,
-      config
-    );
-  }
-
-  // FOLLOW-UP, RESTRICTIONS & GENERAL INSTRUCTIONS - Positioned below Chief Complaint
-  if (
-    config.instructions.show &&
-    (hasAdditionalInstructions(prescription) || prescription.instructions)
-  ) {
-    yRight = checkPageBreak(doc, yRight, 100, config);
-    yRight = addInstructionsSection(
-      doc,
-      yRight,
-      rightColumnX,
-      rightColumnWidth,
-      prescription,
-      config
-    );
-  }
 
   // ==================== SIGNATURE ====================
 
@@ -903,11 +835,6 @@ export async function generatePrescriptionPDF(
     const signatureY = pageHeight - footerHeight - 80; // 80px above footer
     addSignature(doc, signatureY, pageWidth, prescription, config);
   }
-
-  // ==================== GENERAL INSTRUCTIONS (Integrated into main flow) ====================
-
-  // General Instructions are now handled within the Follow-up & Restrictions section
-  // to avoid overlapping content
 
   // ==================== FOOTER ====================
 
@@ -994,82 +921,143 @@ function addLeftColumnSection(
 
   y += config.layout.blockSpacing;
 
-  // Content box
-  const isLabExams = section.title === "Lab Exams";
-  const baseBoxHeight = config.clinicalHistory.boxHeight;
-  const calculatedHeight =
-    section.type === "list"
-      ? Math.max(
-          baseBoxHeight,
-          section.items.length * (isLabExams ? 16 : 15) + 30 // Increased spacing and padding for Lab Exams
-        )
-      : baseBoxHeight;
+  // Calculate the total height needed for this section
+  let totalContentHeight = 0;
+  const contentStartY = y;
+  const paddingTop = 8;
+  const paddingBottom = 8;
+  const paddingLeft = 10;
 
-  // For Lab Exams, ensure minimum height of 80px and add extra padding
-  const boxHeight = isLabExams
-    ? Math.max(calculatedHeight, 80) // Minimum height for Lab Exams
-    : calculatedHeight;
+  if (section.type === "list") {
+    const isLabExams = section.title === "Lab Exams";
 
+    // Calculate line spacing based on section type
+    const baseLineSpacing = isLabExams ? 22 : 15;
+    const wrappedLineHeight = 14; // Height for each wrapped line
+
+    // Process each item to calculate total height
+    section.items.forEach((item: string, index: number) => {
+      const itemText = `${index + 1}. ${item}`;
+
+      if (isLabExams) {
+        // For Lab Exams, calculate wrapped text height
+        const maxWidth = width - 2 * paddingLeft;
+        const lines = doc.splitTextToSize(itemText, maxWidth);
+
+        // For the first item, start with padding
+        if (index === 0) {
+          totalContentHeight += paddingTop;
+        }
+
+        // Add height for this item
+        totalContentHeight += lines.length * wrappedLineHeight;
+
+        // Add spacing between items (except after last item)
+        if (index < section.items.length - 1) {
+          totalContentHeight += 6; // Spacing between items
+        }
+
+        // For last item, add bottom padding
+        if (index === section.items.length - 1) {
+          totalContentHeight += paddingBottom;
+        }
+      } else {
+        // For non-Lab Exams sections
+        if (index === 0) {
+          totalContentHeight += paddingTop;
+        }
+
+        totalContentHeight += baseLineSpacing;
+
+        if (index === section.items.length - 1) {
+          totalContentHeight += paddingBottom;
+        }
+      }
+    });
+  } else {
+    // For text sections
+    const contentLines = doc.splitTextToSize(
+      section.content,
+      width - 2 * paddingLeft
+    );
+    const lineHeight = 12; // Height for each text line
+    totalContentHeight =
+      paddingTop + contentLines.length * lineHeight + paddingBottom;
+  }
+
+  // Ensure minimum height
+  const minHeight = config.clinicalHistory.boxHeight;
+  const boxHeight = Math.max(totalContentHeight, minHeight);
+
+  // Draw the background box
   doc.setFillColor(...config.colors.bgLight);
   doc.setDrawColor(...config.colors.border);
   doc.setLineWidth(0.5);
 
   if (config.clinicalHistory.boxStyle === "rounded") {
-    doc.roundedRect(x, y - 5, width, boxHeight, 3, 3, "FD");
+    doc.roundedRect(x, contentStartY - 5, width, boxHeight, 3, 3, "FD");
   } else {
-    doc.rect(x, y - 5, width, boxHeight, "FD");
+    doc.rect(x, contentStartY - 5, width, boxHeight, "FD");
   }
 
-  // Content
+  // Draw the content
   if (section.type === "list") {
-    doc.setFont(config.typography.defaultFont, "normal");
-    // Use smaller font size for Lab Exams to prevent overflow
     const isLabExams = section.title === "Lab Exams";
+
+    doc.setFont(config.typography.defaultFont, "normal");
     const fontSize = isLabExams
-      ? config.typography.fontSizes.small // Increased from tiny to small for better readability
+      ? config.typography.fontSizes.small
       : config.typography.fontSizes.small;
     doc.setFontSize(fontSize);
     doc.setTextColor(...config.colors.textDark);
 
-    // Use increased line spacing for Lab Exams to prevent text overlap
-    const lineSpacing = isLabExams ? 16 : 15; // Increased from 12 to 16
+    let currentY = contentStartY + paddingTop;
+
     section.items.forEach((item: string, index: number) => {
       const itemText = `${index + 1}. ${item}`;
 
       if (isLabExams) {
-        // For Lab Exams, use text wrapping to prevent overflow with better spacing
-        const maxWidth = width - 20; // Leave padding on both sides
+        // For Lab Exams, wrap text and handle multiline items
+        const maxWidth = width - 2 * paddingLeft;
         const lines = doc.splitTextToSize(itemText, maxWidth);
+
+        // Draw each line
         lines.forEach((line: string, lineIndex: number) => {
-          const lineY = y + 8 + index * lineSpacing + lineIndex * 12; // Increased line height for wrapped text
-          doc.text(line, x + 10, lineY);
+          doc.text(line, x + paddingLeft, currentY + lineIndex * 14);
         });
 
-        // Check if we need to add extra spacing after this item due to wrapping
-        const extraLines = Math.max(0, lines.length - 1);
-        if (extraLines > 0) {
-          // Add extra space for wrapped lines
-          section.items._extraSpacing =
-            (section.items._extraSpacing || 0) + extraLines * 4;
+        // Update currentY position for next item
+        currentY += lines.length * 14;
+
+        // Add spacing between items (except after last item)
+        if (index < section.items.length - 1) {
+          currentY += 6; // Spacing between items
         }
       } else {
-        doc.text(itemText, x + 10, y + 8 + index * lineSpacing);
+        // For non-Lab Exams sections
+        doc.text(itemText, x + paddingLeft, currentY);
+        currentY += 15; // Standard line spacing
+
+        // Add extra spacing between items
+        if (index < section.items.length - 1) {
+          currentY += 3;
+        }
       }
     });
   } else {
-    const contentLines = doc.splitTextToSize(section.content, width - 20);
+    // For text sections
+    const contentLines = doc.splitTextToSize(
+      section.content,
+      width - 2 * paddingLeft
+    );
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.textDark);
-    doc.text(contentLines, x + 10, y + 8);
+    doc.text(contentLines, x + paddingLeft, contentStartY + paddingTop);
   }
 
-  y += boxHeight + config.layout.blockSpacing;
-
-  // Add extra spacing for wrapped Lab Exams text if needed
-  if (isLabExams && section.items._extraSpacing) {
-    y += section.items._extraSpacing;
-  }
+  // Update y position for next section
+  y = contentStartY + boxHeight + config.layout.blockSpacing;
 
   return y;
 }
@@ -1085,7 +1073,6 @@ function addRightColumnSection(
 ): number {
   const sectionTitles = {
     vitalSigns: "Vital Signs",
-    chiefComplaint: "Chief Complaint",
     physicalExam: "Physical Examination",
   };
 
@@ -1106,16 +1093,6 @@ function addRightColumnSection(
   switch (sectionType) {
     case "vitalSigns":
       y = addVitalSignsGrid(doc, y, x, width, prescription, config);
-      break;
-    case "chiefComplaint":
-      y = addTextContent(
-        doc,
-        y,
-        x,
-        width,
-        prescription.chiefComplaint!,
-        config
-      );
       break;
     case "physicalExam":
       y = addTextContent(doc, y, x, width, prescription.physicalExam!, config);
@@ -1488,118 +1465,6 @@ function addMedicationsTable(
   return y;
 }
 
-function addInstructionsSection(
-  doc: jsPDF,
-  y: number,
-  x: number,
-  width: number,
-  prescription: VoicePrescription,
-  config: PDFConfig
-): number {
-  // Section header
-  doc.setFillColor(...config.colors.accent);
-  doc.rect(x, y - 8, 5, 22, "F");
-
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.heading);
-  doc.setTextColor(...config.colors.primary);
-  doc.text("Care Instructions", x + 15, y + 5);
-
-  y += 25;
-
-  let hasContent = false;
-
-  // Follow-up
-  if (config.instructions.sections.followUp && prescription.followUp) {
-    hasContent = true;
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("Follow-up:", x + 10, y);
-
-    const followUpText = getInstructionField(prescription, "followUp", config);
-    y += 8; // Small spacing after header
-    y = addCompactTextContent(
-      doc,
-      y,
-      x + config.instructions.indent,
-      width - config.instructions.indent,
-      followUpText,
-      config
-    );
-    y += 5; // Reduced spacing after follow-up
-  }
-
-  // Restrictions - With bilingual support
-  if (config.instructions.sections.restrictions && prescription.restrictions) {
-    hasContent = true;
-    // Add extra spacing between sections if content exists
-    if (prescription.followUp) {
-      y += 5;
-    }
-
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("Restrictions:", x + 10, y);
-
-    const restrictionsText = getInstructionField(
-      prescription,
-      "restrictions",
-      config
-    );
-    y += 8; // Small spacing after header
-    y = addCompactTextContent(
-      doc,
-      y + 8, // Small spacing after header
-      x + config.instructions.indent,
-      width - config.instructions.indent,
-      restrictionsText,
-      config
-    );
-  }
-
-  // General Instructions
-  if (config.instructions.sections.general && prescription.instructions) {
-    hasContent = true;
-    // Add extra spacing between sections if other content exists
-    if (prescription.followUp || prescription.restrictions) {
-      y += 5;
-    }
-
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("General Instructions:", x + 10, y);
-
-    const instructionsText = getInstructionField(
-      prescription,
-      "instructions",
-      config
-    );
-    y += 8; // Small spacing after header
-    y = addCompactTextContent(
-      doc,
-      y + 8, // Small spacing after header
-      x + config.instructions.indent,
-      width - config.instructions.indent,
-      instructionsText,
-      config
-    );
-  }
-
-  // If no instructions exist, show a message
-  if (!hasContent) {
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text("No additional care instructions specified.", x + 12, y);
-    y += 20;
-  }
-
-  return y;
-}
-
 function addSignature(
   doc: jsPDF,
   y: number,
@@ -1675,15 +1540,6 @@ function addFooter(
 ) {
   const footerY = pageHeight - config.footer.height;
 
-  // Prescription ID
-  if (config.footer.showPrescriptionId) {
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.tiny);
-    doc.setTextColor(120, 120, 120);
-    const idText = `Prescription ID: ${prescription._id}`;
-    doc.text(idText, config.page.margins.left, footerY);
-  }
-
   // Page numbers
   if (config.footer.showPageNumbers) {
     const pageText = `Page 1 of 1`;
@@ -1722,132 +1578,6 @@ function hasVitalSigns(prescription: VoicePrescription): boolean {
     prescription.respiratoryRate,
     prescription.oxygenSaturation,
   ].some((v) => v && v.trim() !== "");
-}
-
-function hasAdditionalInstructions(prescription: VoicePrescription): boolean {
-  return !!(
-    (prescription.followUp && prescription.followUp.trim() !== "") ||
-    (prescription.restrictions && prescription.restrictions.trim() !== "")
-  );
-}
-
-function addGeneralInstructionsAtBottom(
-  doc: jsPDF,
-  y: number,
-  pageWidth: number,
-  prescription: VoicePrescription,
-  config: PDFConfig
-): number {
-  // Half width layout - Instructions take left half, Medical Practitioner takes right half
-  const halfWidth =
-    (pageWidth - config.page.margins.left - config.page.margins.right) / 2;
-  const instructionsWidth = halfWidth - 20;
-  const generalInstructionsX = config.page.margins.left;
-
-  let currentY = y;
-  const sectionSpacing = 15;
-
-  // Follow-up Section
-  if (config.instructions.sections.followUp && prescription.followUp) {
-    // Section header
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("Follow-up", generalInstructionsX + 10, currentY);
-
-    currentY += 12;
-
-    // Follow-up content
-    const followUpText = getInstructionField(prescription, "followUp", config);
-    const followUpLines = doc.splitTextToSize(followUpText, instructionsWidth);
-
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text(followUpLines, generalInstructionsX + 10, currentY);
-
-    currentY += followUpLines.length * 10 + sectionSpacing;
-  }
-
-  // Restrictions Section
-  if (config.instructions.sections.restrictions && prescription.restrictions) {
-    // Section header
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("Restrictions", generalInstructionsX + 10, currentY);
-
-    currentY += 12;
-
-    // Restrictions content
-    const restrictionsText = getInstructionField(
-      prescription,
-      "restrictions",
-      config
-    );
-    const restrictionsLines = doc.splitTextToSize(
-      restrictionsText,
-      instructionsWidth
-    );
-
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text(restrictionsLines, generalInstructionsX + 10, currentY);
-
-    currentY += restrictionsLines.length * 10 + sectionSpacing;
-  }
-
-  // General Instructions Section
-  if (prescription.instructions) {
-    // Section header
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("General Instructions", generalInstructionsX + 10, currentY);
-
-    currentY += 12;
-
-    // Instructions content
-    const instructionsText = getInstructionField(
-      prescription,
-      "instructions",
-      config
-    );
-    const lines = doc.splitTextToSize(instructionsText, instructionsWidth);
-
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text(lines, generalInstructionsX + 10, currentY);
-
-    currentY += lines.length * 10;
-  }
-
-  // Calculate total height and draw background box
-  const totalHeight = currentY - y + 15;
-
-  // Add background box for all instructions section (left half only)
-  doc.setFillColor(...config.colors.bgLight);
-  doc.setDrawColor(...config.colors.border);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(
-    generalInstructionsX,
-    y - 10,
-    halfWidth,
-    totalHeight,
-    3,
-    3,
-    "FD"
-  );
-
-  // Draw vertical divider line between Instructions and Medical Practitioner
-  const dividerX = generalInstructionsX + halfWidth;
-  doc.setDrawColor(...config.colors.border);
-  doc.setLineWidth(0.5);
-  doc.line(dividerX, y - 10, dividerX, y + totalHeight - 5);
-
-  return currentY + 10;
 }
 
 // Export with the expected name for backward compatibility

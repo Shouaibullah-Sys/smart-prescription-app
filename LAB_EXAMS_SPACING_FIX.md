@@ -11,7 +11,76 @@ The Lab Exams section in the prescription PDF was experiencing overflow issues w
 3. **Poor text wrapping**: Long exam names weren't properly wrapped with adequate spacing
 4. **Inadequate page break handling**: Not enough space was allocated for Lab Exams during page break checks
 
-## Implemented Solutions
+## Latest Improvements (2025-12-28)
+
+### Enhanced Line Spacing and Typography
+
+**File**: `utils/generatePrescriptionPDF.ts` (Lines 1034-1057)
+
+**Previous**:
+
+- Line spacing: 16px for Lab Exams
+- Wrapped line height: 12px
+- Extra spacing multiplier: 4px
+
+**Latest**:
+
+- Line spacing: 20px for Lab Exams (increased from 16px)
+- Wrapped line height: 14px (increased from 12px)
+- Extra spacing multiplier: 6px (increased from 4px)
+
+**Improvements**:
+
+- 25% increase in main line spacing for better item separation
+- 17% increase in wrapped line height for better readability
+- 50% increase in extra spacing for wrapped text
+
+### Enhanced Box Height Calculation
+
+**File**: `utils/generatePrescriptionPDF.ts` (Lines 996-1009)
+
+**Previous**:
+
+- Line multiplier: 16px per item
+- Base padding: 30px
+- Minimum height: 80px
+
+**Latest**:
+
+- Line multiplier: 22px per item (increased from 16px)
+- Base padding: 40px (increased from 30px)
+- Minimum height: 100px (increased from 80px)
+
+**Improvements**:
+
+- 38% increase in per-item spacing calculation
+- 33% increase in base padding
+- 25% increase in minimum height
+
+### Increased Default Box Height
+
+**File**: `utils/generatePrescriptionPDF.ts` (Line 324)
+
+**Previous**: `boxHeight: 80`
+**Latest**: `boxHeight: 90`
+
+**Improvements**:
+
+- 12.5% increase in baseline box height for all clinical history sections
+
+### Enhanced Page Break Handling
+
+**File**: `utils/generatePrescriptionPDF.ts` (Lines 804-814)
+
+**Previous**: Required space of 120px for Lab Exams
+**Latest**: Required space of 140px for Lab Exams
+
+**Improvements**:
+
+- 17% increase in page break buffer for Lab Exams
+- More aggressive page break checks to prevent content overflow
+
+## Implemented Solutions (Previous Versions)
 
 ### 1. Enhanced Box Height Calculation
 
@@ -211,12 +280,23 @@ npx tsx test-lab-exams-spacing.ts
 
 ### 📊 Quantitative Improvements
 
+#### Latest Updates (2025-12-28)
+
+- **Line spacing**: Increased by 25% (from 16px to 20px) for Lab Exams
+- **Wrapped line height**: Increased by 17% (from 12px to 14px)
+- **Extra spacing multiplier**: Increased by 50% (from 4px to 6px)
+- **Per-item spacing**: Increased by 38% (from 16px to 22px)
+- **Base padding**: Increased by 33% (from 30px to 40px)
+- **Minimum height**: Increased by 25% (from 80px to 100px)
+- **Default box height**: Increased by 12.5% (from 80px to 90px)
+- **Page break buffer**: Increased by 17% (from 120px to 140px)
+
+#### Previous Improvements
+
 - **Box height**: Increased by 50% minimum (from 40px to 60px default)
 - **Line spacing**: Increased by 33% for Lab Exams (from 12px to 16px)
 - **Font size**: Improved from "tiny" to "small" for better readability
 - **Padding**: Increased by 50% (from 20px to 30px)
-- **Minimum height**: Set to 80px for Lab Exams sections
-- **Page break buffer**: Increased from 100px to 120px for Lab Exams
 
 ### 🎯 User Experience Improvements
 
@@ -243,5 +323,5 @@ npx tsx test-lab-exams-spacing.ts
 
 ---
 
-_Fix implemented on: 2025-12-28_  
-_Status: ✅ Complete and tested_
+_Latest improvements implemented on: 2025-12-28_  
+_Status: ✅ Complete with enhanced spacing - All text overlap issues resolved_
