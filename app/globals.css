@@ -183,3 +183,19 @@
            hover:shadow-md transition-shadow duration-200;
   }
 }
+.fixed-select-content {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+
+.fixed-select-content [data-radix-select-viewport] {
+  color: var(--foreground);
+}
+
+.fixed-select-content [role="option"] {
+  color: var(--foreground) !important;
+}
+
+.dark .fixed-select-content [role="option"] {
+  color: var(--foreground) !important;
+}

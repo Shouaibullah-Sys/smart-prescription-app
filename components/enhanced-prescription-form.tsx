@@ -591,10 +591,10 @@ export function EnhancedPrescriptionForm({
                               updateField("patientGender", value)
                             }
                           >
-                            <SelectTrigger className="mt-1.5">
+                            <SelectTrigger className="mt-1.5 text-foreground data-[placeholder]:text-muted-foreground">
                               <SelectValue placeholder="Select Gender" />
                             </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
+                            <SelectContent className="bg-popover text-popover-foreground [&_*[role=option]]:!text-foreground">
                               <SelectItem value="Male">Male</SelectItem>
                               <SelectItem value="Female">Female</SelectItem>
                               <SelectItem value="Other">Other</SelectItem>
