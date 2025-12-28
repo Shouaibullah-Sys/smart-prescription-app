@@ -1,4 +1,3 @@
-// components/prescriptions/columns.tsx
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -6,7 +5,6 @@ import { Prescription } from "../../types/prescription";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { faIR } from "date-fns/locale";
 import { format as formatJalali } from "date-fns-jalali";
 import {
   downloadPrescriptionPDF,
@@ -30,19 +28,22 @@ export const useColumns = ({
     prescription: Prescription
   ): VoicePrescription => {
     // Ensure required string fields
-    const safeUserId = prescription.userId || "unknown-user";
     const safePatientName = prescription.patientName || "نامشخص";
-
     const safeDoctorName = prescription.doctorName || "دکتر";
 
     // Convert medications to Medication format
-    const medications = prescription.medicines.map((med) => ({
-      medicine: med.medicine,
-      dosage: med.dosage,
+    const medications = (prescription.medicines || []).map((med) => ({
+      medicine: med.medicine || "",
+      dosage: med.dosage || "",
+      dosagePersian: med.dosagePersian,
       frequency: med.frequency || "",
+      frequencyPersian: med.frequencyPersian,
       duration: med.duration || "",
+      durationPersian: med.durationPersian,
       instructions: med.instructions || "",
+      instructionsPersian: med.instructionsPersian,
       form: med.form,
+      formPersian: med.formPersian,
       route: med.route,
       timing: med.timing,
       withFood: med.withFood || false,
@@ -53,36 +54,87 @@ export const useColumns = ({
     const prescriptionDate =
       prescription.prescriptionDate instanceof Date
         ? prescription.prescriptionDate.toISOString()
-        : new Date(prescription.prescriptionDate || Date.now()).toISOString();
+        : prescription.prescriptionDate
+        ? new Date(prescription.prescriptionDate).toISOString()
+        : new Date().toISOString();
 
-    return {
-      _id: prescription.id,
+    // Create VoicePrescription object with ALL fields
+    const voicePrescription: VoicePrescription = {
+      _id: prescription.id || `prescription_${Date.now()}`,
       patientName: safePatientName,
-      patientAge: prescription.patientAge || "نامشخص",
-      patientGender: prescription.patientGender || "نامشخص",
+      patientAge: prescription.patientAge || "",
+      patientGender: prescription.patientGender || "",
+      patientPhone: prescription.patientPhone || "",
+      patientAddress: prescription.patientAddress || "",
       allergies: prescription.allergies || [],
+      currentMedications: prescription.currentMedications || [],
+      pastMedicalHistory: prescription.pastMedicalHistory || "",
+      familyHistory: prescription.familyHistory || "",
+      socialHistory: prescription.socialHistory || "",
+      chiefComplaint: prescription.chiefComplaint || "",
+      weight: prescription.weight || "",
+      height: prescription.height || "",
       pulseRate: prescription.pulseRate || "",
+      heartRate: prescription.heartRate || "",
       bloodPressure: prescription.bloodPressure || "",
       temperature: prescription.temperature || "",
       respiratoryRate: prescription.respiratoryRate || "",
       oxygenSaturation: prescription.oxygenSaturation || "",
-      medicationUsage: (prescription.currentMedications || []).join(", "),
-      pastMedicalHistory: prescription.pastMedicalHistory || "",
-
+      physicalExam: prescription.physicalExam || "",
+      // THIS IS THE CRITICAL FIELD - Include medicalExams!
+      medicalExams: prescription.medicalExams || [],
+      examNotes: prescription.examNotes || "",
       medicines: medications,
       instructions: prescription.instructions || "",
+      followUp: prescription.followUp || "",
+      restrictions: prescription.restrictions || "",
       doctorName: safeDoctorName,
+      doctorLicenseNumber: prescription.doctorLicenseNumber || "",
+      clinicName: prescription.clinicName || "",
+      clinicAddress: prescription.clinicAddress || "",
       date: prescriptionDate,
+      transcription: "",
       source: prescription.source || "manual",
       status: prescription.status || "active",
     };
+
+    // Debug log
+    console.log("Converted VoicePrescription:", {
+      medicalExams: voicePrescription.medicalExams,
+      medicalExamsLength: voicePrescription.medicalExams?.length,
+      medicalExamsContent: voicePrescription.medicalExams,
+    });
+
+    return voicePrescription;
   };
 
   const handleDownload = async (prescription: Prescription) => {
     try {
       setDownloadingId(prescription.id);
+
+      // Debug logs
+      console.log("=== Starting PDF Generation ===");
+      console.log("Original prescription ID:", prescription.id);
+      console.log("Original medicalExams:", prescription.medicalExams);
+      console.log(
+        "Original medicalExams length:",
+        prescription.medicalExams?.length
+      );
+
       const voicePrescription = convertToVoicePrescription(prescription);
+
+      console.log(
+        "Voice prescription medicalExams:",
+        voicePrescription.medicalExams
+      );
+      console.log(
+        "Voice prescription medicalExams length:",
+        voicePrescription.medicalExams?.length
+      );
+
       await downloadPrescriptionPDF(voicePrescription);
+
+      console.log("=== PDF Generation Complete ===");
     } catch (error) {
       console.error("Failed to download PDF:", error);
     } finally {
@@ -129,7 +181,6 @@ export const useColumns = ({
         </div>
       ),
     },
-
     {
       accessorKey: "patientAge",
       header: "سن",

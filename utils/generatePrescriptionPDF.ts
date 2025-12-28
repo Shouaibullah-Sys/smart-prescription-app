@@ -486,6 +486,26 @@ export async function generatePrescriptionPDF(
   prescription: VoicePrescription,
   userConfig?: Partial<PDFConfig>
 ): Promise<void> {
+  // Debug logging
+  console.log("=== PDF GENERATION STARTED ===");
+  console.log("Prescription ID:", prescription._id);
+  console.log("Patient name:", prescription.patientName);
+  console.log("Medical exams received:", prescription.medicalExams);
+  console.log("Medical exams type:", typeof prescription.medicalExams);
+  console.log("Medical exams array?", Array.isArray(prescription.medicalExams));
+  console.log("Medical exams length:", prescription.medicalExams?.length);
+
+  if (prescription.medicalExams?.length) {
+    console.log("Medical exams content:");
+    prescription.medicalExams.forEach((exam, index) => {
+      console.log(`  ${index + 1}. ${exam}`);
+    });
+  } else {
+    console.log("No medical exams data or empty array");
+  }
+
+  // Rest of the existing code...
+
   // Merge user config with default config
   const config: PDFConfig = {
     ...defaultPDFConfig,
@@ -836,7 +856,7 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // ADDITIONAL INSTRUCTIONS
+  // ADDITIONAL INSTRUCTIONS (Follow-up and Restrictions only)
   if (config.instructions.show && hasAdditionalInstructions(prescription)) {
     yRight = checkPageBreak(doc, yRight, 100, config);
     yRight += 20;
@@ -857,6 +877,19 @@ export async function generatePrescriptionPDF(
     const footerHeight = config.footer.show ? config.footer.height : 0;
     const signatureY = pageHeight - footerHeight - 80; // 80px above footer
     addSignature(doc, signatureY, pageWidth, prescription, config);
+  }
+
+  // ==================== GENERAL INSTRUCTIONS AT BOTTOM ====================
+
+  if (config.instructions.show && prescription.instructions) {
+    const generalInstructionsY = pageHeight - config.footer.height - 100;
+    addGeneralInstructionsAtBottom(
+      doc,
+      generalInstructionsY,
+      pageWidth,
+      prescription,
+      config
+    );
   }
 
   // ==================== FOOTER ====================
@@ -1328,23 +1361,8 @@ function addInstructionsSection(
 
   y += 25;
 
-  // General Instructions
-  if (config.instructions.sections.general && prescription.instructions) {
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.subheading);
-    doc.setTextColor(...config.colors.primary);
-    doc.text("General Instructions", x + 10, y);
-
-    y = addTextContent(
-      doc,
-      y + config.layout.lineSpacing,
-      x + config.instructions.indent,
-      width - config.instructions.indent,
-      prescription.instructions,
-      config
-    );
-    y += 10;
-  }
+  // General Instructions - MOVED TO BOTTOM
+  // This section is now handled separately at the bottom of the page
 
   // Follow-up
   if (config.instructions.sections.followUp && prescription.followUp) {
@@ -1498,10 +1516,58 @@ function hasVitalSigns(prescription: VoicePrescription): boolean {
 
 function hasAdditionalInstructions(prescription: VoicePrescription): boolean {
   return !!(
-    (prescription.instructions && prescription.instructions.trim() !== "") ||
     (prescription.followUp && prescription.followUp.trim() !== "") ||
     (prescription.restrictions && prescription.restrictions.trim() !== "")
   );
+}
+
+function addGeneralInstructionsAtBottom(
+  doc: jsPDF,
+  y: number,
+  pageWidth: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  // Calculate dynamic height based on content
+  const instructionsWidth =
+    pageWidth - config.page.margins.left - config.page.margins.right - 20;
+  const lines = doc.splitTextToSize(
+    prescription.instructions!,
+    instructionsWidth
+  );
+  const contentHeight = lines.length * 12;
+  const sectionHeight = Math.max(60, contentHeight + 25); // Minimum 60px height
+
+  // Add background box for General Instructions section
+  doc.setFillColor(...config.colors.bgLight);
+  doc.setDrawColor(...config.colors.border);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(
+    config.page.margins.left,
+    y - 15,
+    pageWidth - config.page.margins.left - config.page.margins.right,
+    sectionHeight,
+    3,
+    3,
+    "FD"
+  );
+
+  // Section header
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("General Instructions", config.page.margins.left + 10, y);
+
+  y += config.layout.lineSpacing + 10;
+
+  // Instructions content
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.body);
+  doc.setTextColor(...config.colors.textDark);
+
+  doc.text(lines, config.page.margins.left + 10, y);
+
+  return y + contentHeight + 10;
 }
 
 // Export with the expected name for backward compatibility

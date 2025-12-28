@@ -249,21 +249,107 @@ export function EnhancedPrescriptionForm({
 
     if (medication) {
       // Auto-fill other fields based on medication data
-      // Handle different medication data structures
+      // Handle different medication data structures consistently
+
+      // Extract strength/dosage - handle both AI and local database formats
       const strength =
-        medication.strength || medication.medication?.strengths?.[0] || "";
+        medication.strength ||
+        medication.dosage ||
+        medication.medication?.strengths?.[0] ||
+        medication.strengths?.[0] ||
+        "";
+
+      // Extract dosage form - handle both AI and local database formats
       const dosageForm =
         medication.dosage_form ||
+        medication.form ||
         medication.medication?.dosage_forms?.[0] ||
+        medication.dosage_forms?.[0] ||
         "";
+
+      // Extract precautions - handle both AI and local database formats
       const precautions =
         medication.precautions?.[0] ||
         medication.medication?.precautions?.[0] ||
+        medication.contraindications?.[0] ||
         "";
 
-      updateMedicine(index, "dosage", strength);
-      updateMedicine(index, "form", dosageForm);
-      updateMedicine(index, "notes", precautions);
+      // Extract route - handle both AI and local database formats
+      const route =
+        medication.route ||
+        medication.medication?.route?.[0] ||
+        medication.route?.[0] ||
+        "oral";
+
+      // Update fields with proper fallbacks
+      if (strength) {
+        updateMedicine(index, "dosage", strength);
+      }
+
+      if (dosageForm) {
+        updateMedicine(index, "form", dosageForm);
+      }
+
+      if (precautions) {
+        updateMedicine(index, "notes", precautions);
+      }
+
+      if (route) {
+        updateMedicine(index, "route", route);
+      }
+
+      // Auto-suggest frequency based on medication type if available
+      const category = medication.category?.[0] || medication.category;
+      if (category) {
+        let suggestedFrequency = "";
+
+        // Common medication patterns
+        if (category.toLowerCase().includes("antibiotic")) {
+          suggestedFrequency = "Every 8 hours";
+        } else if (
+          category.toLowerCase().includes("pain") ||
+          category.toLowerCase().includes("analgesic")
+        ) {
+          suggestedFrequency = "Every 6 hours as needed";
+        } else if (
+          category.toLowerCase().includes("blood pressure") ||
+          category.toLowerCase().includes("antihypertensive")
+        ) {
+          suggestedFrequency = "Once daily";
+        } else if (
+          category.toLowerCase().includes("diabetes") ||
+          category.toLowerCase().includes("antidiabetic")
+        ) {
+          suggestedFrequency = "With meals";
+        }
+
+        if (suggestedFrequency) {
+          updateMedicine(index, "frequency", suggestedFrequency);
+        }
+      }
+
+      // Auto-suggest duration based on medication type
+      if (category) {
+        let suggestedDuration = "";
+
+        if (category.toLowerCase().includes("antibiotic")) {
+          suggestedDuration = "7 days";
+        } else if (
+          category.toLowerCase().includes("pain") ||
+          category.toLowerCase().includes("analgesic")
+        ) {
+          suggestedDuration = "3 days";
+        } else if (
+          category.toLowerCase().includes("blood pressure") ||
+          category.toLowerCase().includes("antihypertensive")
+        ) {
+          suggestedDuration = "Ongoing";
+        }
+
+        if (suggestedDuration) {
+          updateMedicine(index, "duration", suggestedDuration);
+        }
+      }
     }
   };
 

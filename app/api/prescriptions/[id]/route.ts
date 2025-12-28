@@ -1,10 +1,9 @@
 // app/api/prescriptions/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db, dbQuery, checkDatabaseConnection } from "@/db/index";
+import { db } from "@/db/index";
 import { prescriptions, medicines } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
 
 /**
  * GET /api/prescriptions/[id]
@@ -26,6 +25,7 @@ export async function GET(
 
     const { id } = await params;
 
+    // Fetch prescription with medicines
     const prescriptionData = await db
       .select({
         prescription: prescriptions,
@@ -42,13 +42,26 @@ export async function GET(
       );
     }
 
-    // Transform the data
+    // Transform the data - include ALL fields from prescription
     const prescription = {
       ...prescriptionData[0].prescription,
+      // Ensure medicalExams is included (it might be null in DB)
+      medicalExams: prescriptionData[0].prescription.medicalExams || [],
+      // Ensure other array fields are included
+      allergies: prescriptionData[0].prescription.allergies || [],
+      currentMedications:
+        prescriptionData[0].prescription.currentMedications || [],
       medicines: prescriptionData
         .filter((row) => row.medicine)
         .map((row) => row.medicine),
     };
+
+    // Debug log
+    console.log("API Response - medicalExams:", prescription.medicalExams);
+    console.log(
+      "API Response - medicalExams length:",
+      prescription.medicalExams?.length
+    );
 
     return NextResponse.json({
       success: true,
@@ -98,7 +111,7 @@ export async function PUT(
       );
     }
 
-    // Update prescription data
+    // Update prescription data - include medicalExams
     const updateData: any = {
       // Patient Information
       patientName: body.patientName,
@@ -109,16 +122,18 @@ export async function PUT(
 
       // Medical Information
       chiefComplaint: body.chiefComplaint,
-      historyOfPresentIllness: body.historyOfPresentIllness,
-      physicalExamination: body.physicalExamination,
-      differentialDiagnosis: body.differentialDiagnosis,
 
       // Vital Signs
       pulseRate: body.pulseRate,
+      heartRate: body.heartRate,
       bloodPressure: body.bloodPressure,
       temperature: body.temperature,
       respiratoryRate: body.respiratoryRate,
       oxygenSaturation: body.oxygenSaturation,
+
+      // Anthropometry
+      weight: body.weight,
+      height: body.height,
 
       // Medical History
       allergies: body.allergies,
@@ -126,6 +141,11 @@ export async function PUT(
       pastMedicalHistory: body.pastMedicalHistory,
       familyHistory: body.familyHistory,
       socialHistory: body.socialHistory,
+
+      // Physical Examination
+      physicalExam: body.physicalExam,
+      medicalExams: body.medicalExams, // Include this!
+      examNotes: body.examNotes,
 
       // Treatment Information
       instructions: body.instructions,
@@ -137,27 +157,26 @@ export async function PUT(
       doctorLicenseNumber: body.doctorLicenseNumber,
       clinicName: body.clinicName,
       clinicAddress: body.clinicAddress,
-      doctorFree: body.doctorFree,
 
       // Updated at
       updatedAt: new Date(),
     };
 
-    // Remove undefined values
+    // Remove undefined values but keep empty arrays
     Object.keys(updateData).forEach((key) => {
       if (updateData[key] === undefined) {
         delete updateData[key];
       }
     });
 
-    // Update prescription (without transaction)
+    // Update prescription
     const updatedPrescription = await db
       .update(prescriptions)
       .set(updateData)
       .where(eq(prescriptions.id, id))
       .returning();
 
-    // Update medicines if provided (without transaction)
+    // Update medicines if provided
     if (body.medicines && Array.isArray(body.medicines)) {
       // Delete existing medicines
       await db.delete(medicines).where(eq(medicines.prescriptionId, id));
@@ -165,17 +184,22 @@ export async function PUT(
       // Insert updated medicines
       if (body.medicines.length > 0) {
         const medicinesData = body.medicines.map((med: any) => ({
-          id: uuidv4(),
+          id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           prescriptionId: id,
           medicine: med.medicine || med.name,
           dosage: med.dosage,
+          dosagePersian: med.dosagePersian,
           form: med.form,
+          formPersian: med.formPersian,
           frequency: med.frequency,
+          frequencyPersian: med.frequencyPersian,
           duration: med.duration,
+          durationPersian: med.durationPersian,
           route: med.route,
           timing: med.timing,
           withFood: med.withFood || false,
           instructions: med.instructions,
+          instructionsPersian: med.instructionsPersian,
           notes: med.notes,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -198,6 +222,9 @@ export async function PUT(
     // Transform the result
     const prescriptionWithMedicines = {
       ...updatedData[0].prescription,
+      medicalExams: updatedData[0].prescription.medicalExams || [],
+      allergies: updatedData[0].prescription.allergies || [],
+      currentMedications: updatedData[0].prescription.currentMedications || [],
       medicines: updatedData
         .filter((row) => row.medicine)
         .map((row) => row.medicine),
@@ -212,69 +239,6 @@ export async function PUT(
     console.error("Update prescription error:", error);
     return NextResponse.json(
       { success: false, error: "خطا در بروزرسانی نسخه" },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * DELETE /api/prescriptions/[id]
- * Delete a specific prescription
- */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    // Check authentication with Clerk
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: "دسترسی غیرمجاز" },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-
-    // First, verify the prescription exists and belongs to the user
-    const existingPrescription = await db
-      .select()
-      .from(prescriptions)
-      .where(and(eq(prescriptions.id, id), eq(prescriptions.userId, userId)))
-      .limit(1);
-
-    if (existingPrescription.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "نسخه پیدا نشد" },
-        { status: 404 }
-      );
-    }
-
-    // Delete related medicines first (without transaction)
-    await db.delete(medicines).where(eq(medicines.prescriptionId, id));
-
-    // Then delete the prescription
-    const deleteResult = await db
-      .delete(prescriptions)
-      .where(and(eq(prescriptions.id, id), eq(prescriptions.userId, userId)))
-      .returning({ deletedId: prescriptions.id });
-
-    if (deleteResult.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "خطا در حذف نسخه" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: "نسخه با موفقیت حذف شد",
-    });
-  } catch (error) {
-    console.error("Delete prescription error:", error);
-    return NextResponse.json(
-      { success: false, error: "خطا در حذف نسخه" },
       { status: 500 }
     );
   }

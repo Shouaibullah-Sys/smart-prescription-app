@@ -80,12 +80,14 @@ export function SmartMedicationSearch({
   className,
 }: SmartMedicationSearchProps) {
   const [open, setOpen] = useState(false);
+  // Use controlled state that only updates when external value changes
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isSelecting, setIsSelecting] = useState(false); // New state to track selection
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined);
+  const isControlled = value !== undefined;
 
   // Test database on mount
   useEffect(() => {
@@ -113,12 +115,12 @@ export function SmartMedicationSearch({
     }
   }, []);
 
-  // Sync searchTerm with external value
+  // Sync searchTerm with external value only when it actually changes
   useEffect(() => {
-    if (value !== undefined) {
-      setSearchTerm(value);
+    if (isControlled && value !== searchTerm) {
+      setSearchTerm(value || "");
     }
-  }, [value]);
+  }, [value, searchTerm, isControlled]);
 
   const saveToHistory = (term: string) => {
     if (!term.trim()) return;
@@ -228,7 +230,7 @@ export function SmartMedicationSearch({
     }
   };
 
-  // Debounced search
+  // Debounced search - only search when term actually changes
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
@@ -249,12 +251,13 @@ export function SmartMedicationSearch({
     console.log("Selected suggestion:", suggestion);
     const selectedValue = suggestion.label;
 
-    // Update search term immediately to prevent re-render issues
+    // Update search term immediately
     setSearchTerm(selectedValue);
     setOpen(false); // Ensure popover closes
     setSuggestions([]); // Clear suggestions
     saveToHistory(selectedValue);
 
+    // Call onChange with the selected value
     if (onChange) {
       onChange(selectedValue, suggestion.data);
     }
@@ -262,33 +265,47 @@ export function SmartMedicationSearch({
     if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
       onSuggestionSelect(suggestion.data);
     }
-
-    // Don't set isSelecting to prevent the popover reopening
-    // This was causing the main issue where the search would reopen
   };
 
   const clearSearch = () => {
     setIsSelecting(true);
-    setSearchTerm("");
+
+    // Clear internal state
+    if (!isControlled) {
+      setSearchTerm("");
+    }
+
     setSuggestions([]);
     setOpen(false);
+
+    // Always call onChange to clear parent state
     if (onChange) {
       onChange("", undefined);
     }
+
     setTimeout(() => {
       setIsSelecting(false);
     }, 100);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const inputValue = e.target.value;
     setIsSelecting(false); // User is typing, not selecting
-    setSearchTerm(value);
+
+    // Only update internal state if not controlled, or if controlled but we're the ones updating it
+    if (!isControlled) {
+      setSearchTerm(inputValue);
+    }
+
+    // Always call onChange for parent to handle
+    if (onChange) {
+      onChange(inputValue);
+    }
 
     // Open popover when user starts typing
-    if (value.trim() && !open) {
+    if (inputValue.trim() && !open) {
       setOpen(true);
-    } else if (!value.trim()) {
+    } else if (!inputValue.trim()) {
       setOpen(false);
     }
   };
@@ -332,7 +349,7 @@ export function SmartMedicationSearch({
             <div className="relative">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                value={searchTerm}
+                value={isControlled ? value || "" : searchTerm}
                 onChange={handleInputChange}
                 onFocus={handleFocus}
                 placeholder={placeholder}
