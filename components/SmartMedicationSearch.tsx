@@ -260,8 +260,10 @@ export function SmartMedicationSearch({
 
   const handleSelect = useCallback(
     (selectedValue: string) => {
-      // Find the matching suggestion
-      const suggestion = suggestions.find((s) => s.value === selectedValue);
+      // Find the matching suggestion by both value and label for better matching
+      const suggestion = suggestions.find(
+        (s) => s.value === selectedValue || s.label === selectedValue
+      );
 
       console.log("Selected value:", selectedValue);
       console.log("Found suggestion:", suggestion);
@@ -276,19 +278,23 @@ export function SmartMedicationSearch({
         return;
       }
 
-      // Update search term
-      setSearchTerm(selectedValue);
+      // Update search term with the value (actual medicine name) for consistency
+      setSearchTerm(suggestion.value);
 
       // Clear suggestions
       setSuggestions([]);
 
-      // Save to history
-      saveToHistory(selectedValue);
+      // Save to history using the actual value
+      saveToHistory(suggestion.value);
 
       // Call onChange with the selected value and medication data
       if (onChange) {
-        console.log("Calling onChange with:", selectedValue, suggestion.data);
-        onChange(selectedValue, suggestion.data);
+        console.log(
+          "Calling onChange with:",
+          suggestion.value,
+          suggestion.data
+        );
+        onChange(suggestion.value, suggestion.data);
       }
 
       if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
@@ -357,13 +363,19 @@ export function SmartMedicationSearch({
       : []),
 
     // Suggestions
-    ...suggestions.map((suggestion) => {
+    ...suggestions.map((suggestion, index) => {
       const medication = getMedicationFromData(suggestion.data);
       const aiSuggestion = getAISuggestionFromData(suggestion.data);
 
+      // Generate a truly unique key using medication ID or a hash of the content
+      const medicationId =
+        medication?.id || suggestion.label.replace(/\s+/g, "_").toLowerCase();
+      const uniqueId = `${medicationId}-${suggestion.type}-${index}`;
+
       return {
+        key: uniqueId,
         label: suggestion.label,
-        value: suggestion.value,
+        value: suggestion.value, // Use actual medication value
         render: (
           <div className="w-full">
             <div className="flex items-center justify-between w-full mb-1">
@@ -469,7 +481,7 @@ export function SmartMedicationSearch({
     <div className={cn("space-y-2", className)}>
       <Autocomplete
         value={searchTerm}
-        onValueChange={handleSelect}
+        onValueChange={setSearchTerm}
         disabled={disabled}
       >
         <AutocompleteControl className="relative">
@@ -510,7 +522,7 @@ export function SmartMedicationSearch({
               )}
               {autocompleteOptions.map((option, index) => (
                 <AutocompleteItem
-                  key={`${option.value}-${index}`}
+                  key={option.value || `${option.label}-${index}`}
                   value={option.value}
                 >
                   {option.render}

@@ -1,3 +1,5 @@
+// components/prescriptions/columns.tsx
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
