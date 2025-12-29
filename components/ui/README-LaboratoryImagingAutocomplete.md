@@ -243,7 +243,7 @@ The API returns suggestions in this format:
   "suggestions": [
     {
       "id": "test001",
-      "name": "Complete Blood Count (CBC)",
+      "name": "CBC",
       "category": ["Blood Test", "Hematology"],
       "type": "Laboratory",
       "preparation": ["None required"],

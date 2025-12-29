@@ -35,6 +35,7 @@ export interface VoicePrescription {
   socialHistory?: string;
   weight?: string;
   height?: string;
+  bmi?: string;
   pulseRate?: string;
   heartRate?: string;
   bloodPressure?: string;
@@ -44,6 +45,19 @@ export interface VoicePrescription {
   physicalExam?: string;
   medicalExams?: string[];
   examNotes?: string;
+  // System Examinations
+  cnsExamination?: string;
+  cardiovascularExamination?: string;
+  respiratoryExamination?: string;
+  gastrointestinalExamination?: string;
+  musculoskeletalExamination?: string;
+  genitourinaryExamination?: string;
+  dermatologicalExamination?: string;
+  entExamination?: string;
+  ophthalmologicalExamination?: string;
+  // Additional Fields
+  chiefComplaint?: string;
+  pastMedicalHistory?: string;
   medicines: Medication[];
   doctorName: string;
   doctorLicenseNumber?: string;
@@ -76,7 +90,7 @@ export interface PDFConfig {
     autoDetect: boolean;
   };
 
-  // Colors
+  // Colors - Updated to green theme
   colors: {
     primary: [number, number, number];
     accent: [number, number, number];
@@ -86,6 +100,8 @@ export interface PDFConfig {
     tableStriped: [number, number, number];
     warning: [number, number, number];
     success: [number, number, number];
+    sectionBg: [number, number, number];
+    sectionHeader: [number, number, number];
   };
 
   // Typography
@@ -127,6 +143,8 @@ export interface PDFConfig {
     sectionSpacing: number;
     blockSpacing: number;
     lineSpacing: number;
+    minSectionHeight: number;
+    maxSectionHeight: number;
   };
 
   // Patient Info
@@ -151,7 +169,15 @@ export interface PDFConfig {
       socialHistory: boolean;
     };
     boxStyle: "rounded" | "flat";
-    boxHeight: number;
+    autoHeight: boolean; // New: Enable auto height calculation
+    minHeight: number; // Minimum section height
+    maxHeight: number; // Maximum section height before overflow
+    padding: {
+      top: number;
+      bottom: number;
+      left: number;
+      right: number;
+    };
   };
 
   // Vital Signs
@@ -181,7 +207,7 @@ export interface PDFConfig {
     };
   };
 
-  // Instructions (Disabled - removed chief complaint, care instructions, restrictions, and general instructions)
+  // Instructions
   instructions: {
     show: boolean;
     sections: {
@@ -221,6 +247,7 @@ export interface PDFConfig {
     showBorders: boolean;
     showGrid: boolean;
     logPositions: boolean;
+    showCalculations: boolean;
   };
 }
 
@@ -236,19 +263,22 @@ export const defaultPDFConfig: PDFConfig = {
   language: {
     primary: "english",
     fallback: "persian",
-    showBothLanguages: true, // Set to true to show both languages
+    showBothLanguages: true,
     autoDetect: true,
   },
 
   colors: {
-    primary: [42, 94, 168],
-    accent: [66, 133, 244],
-    bgLight: [244, 247, 252],
-    textDark: [40, 40, 40],
-    border: [200, 200, 200],
-    tableStriped: [250, 250, 250],
-    warning: [255, 193, 7],
-    success: [40, 167, 69],
+    // Green color theme
+    primary: [34, 139, 34], // Forest Green
+    accent: [50, 205, 50], // Lime Green
+    bgLight: [240, 255, 240], // Honeydew
+    textDark: [0, 51, 0], // Dark Green
+    border: [144, 238, 144], // Light Green
+    tableStriped: [245, 255, 245], // Mint Cream
+    warning: [255, 215, 0], // Gold
+    success: [60, 179, 113], // Medium Sea Green
+    sectionBg: [230, 255, 230], // Very Light Green
+    sectionHeader: [0, 100, 0], // Dark Green
   },
 
   typography: {
@@ -287,6 +317,8 @@ export const defaultPDFConfig: PDFConfig = {
     sectionSpacing: 25,
     blockSpacing: 15,
     lineSpacing: 5,
+    minSectionHeight: 30,
+    maxSectionHeight: 200,
   },
 
   patientInfo: {
@@ -296,7 +328,7 @@ export const defaultPDFConfig: PDFConfig = {
     columns: 4,
     showLabels: true,
     labelStyle: "bold",
-    include: ["name", "age", "gender", "date", "weight", "height"],
+    include: ["name", "age", "gender", "date", "weight", "height", "bmi"],
   },
 
   clinicalHistory: {
@@ -309,17 +341,25 @@ export const defaultPDFConfig: PDFConfig = {
       socialHistory: true,
     },
     boxStyle: "rounded",
-    boxHeight: 90, // Increased from 80 to 90 to provide more baseline space for all sections
+    autoHeight: true, // Enable dynamic height
+    minHeight: 40, // Minimum height for empty sections
+    maxHeight: 150, // Maximum height before adding "See more..."
+    padding: {
+      top: 10,
+      bottom: 10,
+      left: 12,
+      right: 12,
+    },
   },
 
   vitalSigns: {
     show: true,
-    gridColumns: 6,
+    gridColumns: 3,
     cell: {
-      width: 70,
-      height: 28,
-      gap: 4,
-      borderRadius: 3,
+      width: 45,
+      height: 20,
+      gap: 3,
+      borderRadius: 2,
     },
     include: ["pulse", "bp", "heart", "temp", "respiratory", "oxygen"],
     showUnits: true,
@@ -379,6 +419,7 @@ export const defaultPDFConfig: PDFConfig = {
     showBorders: false,
     showGrid: false,
     logPositions: false,
+    showCalculations: false,
   },
 };
 
@@ -392,17 +433,14 @@ function getBilingualValue(
   persianValue: string | undefined,
   config: PDFConfig
 ): string {
-  // If showBothLanguages is true and both values exist, show both
   if (config.language.showBothLanguages && englishValue && persianValue) {
     return `${englishValue}\n${persianValue}`;
   }
 
-  // If primary language is English
   if (config.language.primary === "english") {
     return englishValue || persianValue || "";
   }
 
-  // If primary language is Persian
   return persianValue || englishValue || "";
 }
 
@@ -420,20 +458,190 @@ function getMedicationField(
 }
 
 /**
- * Get instruction field with bilingual support (for restrictions, followUp, general instructions)
+ * Calculate dynamic height for content
  */
-function getInstructionField(
-  prescription: VoicePrescription,
-  fieldName: string,
+function calculateContentHeight(
+  doc: jsPDF,
+  content: string | string[],
+  maxWidth: number,
+  fontSize: number,
+  lineHeightMultiplier: number,
   config: PDFConfig
-): string {
-  const englishValue = prescription[
-    fieldName as keyof VoicePrescription
-  ] as string;
-  const persianValue = prescription[
-    `${fieldName}Persian` as keyof VoicePrescription
-  ] as string;
-  return getBilingualValue(englishValue, persianValue, config);
+): number {
+  let lines: string[] = [];
+
+  if (Array.isArray(content)) {
+    // Handle array content (like lists)
+    lines = content.flatMap((item) => doc.splitTextToSize(item, maxWidth));
+  } else {
+    // Handle string content
+    lines = doc.splitTextToSize(content, maxWidth);
+  }
+
+  const lineHeight = fontSize * lineHeightMultiplier;
+  const totalHeight = lines.length * lineHeight;
+
+  if (config.debug.showCalculations) {
+    console.log("Height calculation:", {
+      linesCount: lines.length,
+      lineHeight,
+      totalHeight,
+      fontSize,
+      maxWidth,
+      content: Array.isArray(content) ? content.length : "string",
+    });
+  }
+
+  return totalHeight;
+}
+
+/**
+ * Truncate text if it exceeds max height and add "See more..." indicator
+ */
+function truncateContentToFitHeight(
+  doc: jsPDF,
+  content: string | string[],
+  maxWidth: number,
+  maxHeight: number,
+  fontSize: number,
+  lineHeightMultiplier: number,
+  config: PDFConfig
+): { content: string | string[]; isTruncated: boolean; usedHeight: number } {
+  let lines: string[] = [];
+  let isTruncated = false;
+
+  if (Array.isArray(content)) {
+    // Handle array content
+    const availableLines = Math.floor(
+      maxHeight / (fontSize * lineHeightMultiplier)
+    );
+    let currentLines = 0;
+    const truncatedItems: string[] = [];
+
+    for (const item of content) {
+      const itemLines = doc.splitTextToSize(item, maxWidth);
+      if (currentLines + itemLines.length <= availableLines) {
+        truncatedItems.push(item);
+        currentLines += itemLines.length;
+      } else {
+        const remainingLines = availableLines - currentLines;
+        if (remainingLines >= 2) {
+          // Can fit at least "See more..."
+          truncatedItems.push(item);
+          isTruncated = true;
+          break;
+        } else {
+          isTruncated = true;
+          break;
+        }
+      }
+    }
+
+    if (isTruncated && truncatedItems.length > 0) {
+      const lastItem = truncatedItems[truncatedItems.length - 1];
+      const lastItemLines = doc.splitTextToSize(lastItem, maxWidth);
+      if (lastItemLines.length > 1) {
+        // Truncate the last item
+        truncatedItems[truncatedItems.length - 1] =
+          lastItem.substring(0, Math.floor(lastItem.length * 0.8)) + "...";
+      } else {
+        truncatedItems.push("See more...");
+      }
+    }
+
+    return {
+      content: truncatedItems,
+      isTruncated,
+      usedHeight: currentLines * fontSize * lineHeightMultiplier,
+    };
+  } else {
+    // Handle string content
+    lines = doc.splitTextToSize(content, maxWidth);
+    const maxLines = Math.floor(maxHeight / (fontSize * lineHeightMultiplier));
+
+    if (lines.length > maxLines) {
+      isTruncated = true;
+      lines = lines.slice(0, maxLines - 1);
+      lines[lines.length - 1] =
+        lines[lines.length - 1].substring(
+          0,
+          Math.floor(lines[lines.length - 1].length * 0.8)
+        ) + "...";
+    }
+
+    return {
+      content: lines.join("\n"),
+      isTruncated,
+      usedHeight: lines.length * fontSize * lineHeightMultiplier,
+    };
+  }
+}
+
+/**
+ * Calculate total section height including padding and borders
+ */
+function calculateSectionHeight(
+  doc: jsPDF,
+  title: string,
+  content: string | string[],
+  maxWidth: number,
+  config: PDFConfig
+): number {
+  const titleHeight = config.typography.fontSizes.subheading * 1.5;
+  const padding =
+    config.clinicalHistory.padding.top + config.clinicalHistory.padding.bottom;
+
+  let contentHeight: number;
+
+  if (Array.isArray(content)) {
+    // Calculate height for list items
+    const fontSize = config.typography.fontSizes.tiny;
+    const lineHeight = fontSize * 1.5;
+    let totalLines = 0;
+
+    for (const item of content) {
+      const lines = doc.splitTextToSize(
+        `${content.indexOf(item) + 1}. ${item}`,
+        maxWidth
+      );
+      totalLines += lines.length;
+    }
+
+    contentHeight = totalLines * lineHeight;
+  } else {
+    // Calculate height for text content
+    contentHeight = calculateContentHeight(
+      doc,
+      content,
+      maxWidth,
+      config.typography.fontSizes.tiny,
+      1.5,
+      config
+    );
+  }
+
+  const totalHeight = titleHeight + contentHeight + padding;
+
+  // Apply min/max constraints
+  const constrainedHeight = Math.max(
+    config.clinicalHistory.minHeight,
+    Math.min(config.clinicalHistory.maxHeight, totalHeight)
+  );
+
+  if (config.debug.showCalculations) {
+    console.log("Section height calculation:", {
+      title,
+      titleHeight,
+      contentHeight,
+      padding,
+      totalHeight,
+      constrainedHeight,
+      type: Array.isArray(content) ? "list" : "text",
+      itemsCount: Array.isArray(content) ? content.length : 1,
+    });
+  }
+
+  return constrainedHeight;
 }
 
 /**
@@ -442,7 +650,6 @@ function getInstructionField(
 function detectLanguagePreference(
   prescription: VoicePrescription
 ): "english" | "persian" {
-  // Check if any medication has Persian values
   const hasPersianContent = prescription.medicines?.some(
     (med) =>
       med.dosagePersian ||
@@ -486,30 +693,268 @@ function checkPageBreak(
   return currentY;
 }
 
+// ==================== DYNAMIC LEFT COLUMN SECTION ====================
+
+interface DynamicSection {
+  type: "text" | "list";
+  title: string;
+  content: string | string[];
+  requiredHeight: number;
+}
+
+function createDynamicLeftColumnSections(
+  prescription: VoicePrescription,
+  config: PDFConfig,
+  columnWidth: number
+): DynamicSection[] {
+  const sections: DynamicSection[] = [];
+  const paddingWidth =
+    columnWidth -
+    config.clinicalHistory.padding.left -
+    config.clinicalHistory.padding.right;
+
+  // Create a temporary jsPDF instance for height calculations
+  const tempDoc = new jsPDF({
+    orientation: config.page.orientation,
+    unit: config.page.unit,
+    format: config.page.format,
+  });
+  tempDoc.setFont(config.typography.defaultFont);
+
+  // Chief Complaint
+  if (prescription.chiefComplaint) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Chief Complaint",
+      prescription.chiefComplaint,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "text",
+      title: "Chief Complaint",
+      content: prescription.chiefComplaint,
+      requiredHeight: height,
+    });
+  }
+
+  // Past Medical History
+  if (prescription.pastMedicalHistory) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Medical History",
+      prescription.pastMedicalHistory,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "text",
+      title: "Medical History",
+      content: prescription.pastMedicalHistory,
+      requiredHeight: height,
+    });
+  }
+
+  // Lab Exams
+  if (
+    config.clinicalHistory.sections.labExams &&
+    prescription.medicalExams?.length
+  ) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Lab Exams",
+      prescription.medicalExams,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "list",
+      title: "Lab Exams",
+      content: prescription.medicalExams,
+      requiredHeight: height,
+    });
+  }
+
+  // Allergies (Diagnosis)
+  if (
+    config.clinicalHistory.sections.allergies &&
+    prescription.allergies?.length
+  ) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Diagnosis",
+      prescription.allergies,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "list",
+      title: "Diagnosis",
+      content: prescription.allergies,
+      requiredHeight: height,
+    });
+  }
+
+  // Family History
+  if (
+    config.clinicalHistory.sections.familyHistory &&
+    prescription.familyHistory
+  ) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Family History",
+      prescription.familyHistory,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "text",
+      title: "Family History",
+      content: prescription.familyHistory,
+      requiredHeight: height,
+    });
+  }
+
+  // Social History
+  if (
+    config.clinicalHistory.sections.socialHistory &&
+    prescription.socialHistory
+  ) {
+    const height = calculateSectionHeight(
+      tempDoc,
+      "Social History",
+      prescription.socialHistory,
+      paddingWidth,
+      config
+    );
+    sections.push({
+      type: "text",
+      title: "Social History",
+      content: prescription.socialHistory,
+      requiredHeight: height,
+    });
+  }
+
+  return sections;
+}
+
+function addDynamicLeftColumnSection(
+  doc: jsPDF,
+  section: DynamicSection,
+  y: number,
+  x: number,
+  width: number,
+  config: PDFConfig
+): number {
+  const sectionHeight = section.requiredHeight;
+  const padding = config.clinicalHistory.padding;
+  const contentWidth = width - padding.left - padding.right;
+
+  // Check if we need to truncate content
+  const maxContentHeight =
+    sectionHeight -
+    padding.top -
+    padding.bottom -
+    config.typography.fontSizes.subheading * 1.5;
+
+  let displayContent = section.content;
+  let isTruncated = false;
+
+  if (config.clinicalHistory.autoHeight) {
+    const truncationResult = truncateContentToFitHeight(
+      doc,
+      section.content,
+      contentWidth,
+      maxContentHeight,
+      config.typography.fontSizes.tiny,
+      1.5,
+      config
+    );
+
+    displayContent = truncationResult.content;
+    isTruncated = truncationResult.isTruncated;
+  }
+
+  // Draw section background with dynamic height
+  doc.setFillColor(...config.colors.sectionBg);
+  doc.setDrawColor(...config.colors.border);
+  doc.setLineWidth(0.5);
+
+  if (config.clinicalHistory.boxStyle === "rounded") {
+    doc.roundedRect(x, y - 8, width, sectionHeight, 8, 8, "FD");
+  } else {
+    doc.rect(x, y - 8, width, sectionHeight, "FD");
+  }
+
+  // Draw decorative left border
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y - 8, 4, sectionHeight, "F");
+
+  // Section title
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.sectionHeader);
+  doc.text(section.title, x + padding.left, y + 5);
+
+  // Content
+  const contentY =
+    y + padding.top + config.typography.fontSizes.subheading * 1.5;
+
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.tiny);
+  doc.setTextColor(...config.colors.textDark);
+
+  if (section.type === "list" && Array.isArray(displayContent)) {
+    let currentY = contentY;
+    displayContent.forEach((item, index) => {
+      const itemText =
+        isTruncated &&
+        index === displayContent.length - 1 &&
+        item === "See more..."
+          ? item
+          : `${index + 1}. ${item}`;
+
+      const lines = doc.splitTextToSize(itemText, contentWidth);
+      lines.forEach((line: string, lineIndex: number) => {
+        doc.text(line, x + padding.left, currentY + lineIndex * 14);
+      });
+
+      currentY += lines.length * 14 + 3;
+    });
+  } else {
+    const content =
+      typeof displayContent === "string"
+        ? displayContent
+        : Array.isArray(displayContent)
+        ? displayContent.join("\n")
+        : "";
+    const lines = doc.splitTextToSize(content, contentWidth);
+    doc.text(lines, x + padding.left, contentY);
+  }
+
+  // Add "See more..." indicator if truncated
+  if (isTruncated) {
+    doc.setFont(config.typography.defaultFont, "italic");
+    doc.setFontSize(config.typography.fontSizes.tiny - 1);
+    doc.setTextColor(...config.colors.primary);
+    doc.text(
+      "...",
+      x + width - padding.right - 10,
+      y + sectionHeight - padding.bottom,
+      { align: "right" }
+    );
+  }
+
+  // Update y position for next section
+  return y + sectionHeight + config.layout.blockSpacing;
+}
+
 // ==================== MAIN PDF GENERATION FUNCTION ====================
 
 export async function generatePrescriptionPDF(
   prescription: VoicePrescription,
   userConfig?: Partial<PDFConfig>
 ): Promise<void> {
-  // Debug logging
-  console.log("=== PDF GENERATION STARTED ===");
-  console.log("Prescription ID:", prescription._id);
-  console.log("Patient name:", prescription.patientName);
-  console.log("Medical exams received:", prescription.medicalExams);
-  console.log("Medical exams type:", typeof prescription.medicalExams);
-  console.log("Medical exams array?", Array.isArray(prescription.medicalExams));
-  console.log("Medical exams length:", prescription.medicalExams?.length);
-
-  if (prescription.medicalExams?.length) {
-    console.log("Medical exams content:");
-    prescription.medicalExams.forEach((exam, index) => {
-      console.log(`  ${index + 1}. ${exam}`);
-    });
-  } else {
-    console.log("No medical exams data or empty array");
-  }
-
   // Merge user config with default config
   const config: PDFConfig = {
     ...defaultPDFConfig,
@@ -553,7 +998,7 @@ export async function generatePrescriptionPDF(
 
   // Debug: Show borders if enabled
   if (config.debug.showBorders) {
-    doc.setDrawColor(255, 0, 0);
+    doc.setDrawColor(0, 128, 0); // Green border for debug
     doc.setLineWidth(0.5);
     doc.rect(
       config.page.margins.left,
@@ -609,26 +1054,27 @@ export async function generatePrescriptionPDF(
 
   if (config.patientInfo.show) {
     y += config.layout.blockSpacing;
-    // Move patient information down by 40 pixels
-    y += 70;
     y = checkPageBreak(doc, y, 100, config);
 
     const patientBoxWidth =
       pageWidth - config.page.margins.left - config.page.margins.right;
-    const patientBoxHeight = 40;
 
-    // Patient Info - No border, just content area
+    // Section Title with green accent
+    doc.setFillColor(...config.colors.accent);
+    doc.rect(config.page.margins.left, y - 5, 5, 25, "F");
 
-    // Section Title
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.heading);
     doc.setTextColor(...config.colors.primary);
+    doc.text("Patient Information", config.page.margins.left + 15, y + 5);
+
+    y += 30;
 
     // Patient Info Grid
     const patientInfoRows = createPatientInfoRows(prescription, config);
     const columnWidth = patientBoxWidth / config.patientInfo.columns;
     const rowHeight = 16;
-    let rowY = y + 25;
+    let rowY = y;
 
     patientInfoRows.forEach((info, index) => {
       const col = index % config.patientInfo.columns;
@@ -652,20 +1098,23 @@ export async function generatePrescriptionPDF(
       doc.setFontSize(config.typography.fontSizes.small);
       doc.setTextColor(...config.colors.textDark);
 
-      const labelWidth = config.patientInfo.showLabels ? 80 : 0;
+      const labelWidth = config.patientInfo.showLabels ? 60 : 0;
       doc.text(info.value, xPos + labelWidth, yPos);
     });
 
-    y += patientBoxHeight + config.layout.blockSpacing;
+    y +=
+      Math.ceil(patientInfoRows.length / config.patientInfo.columns) *
+        rowHeight +
+      config.layout.blockSpacing;
 
-    // Line at bottom of patient information
+    // Green line at bottom of patient information
     doc.setDrawColor(...config.colors.accent);
     doc.setLineWidth(1.5);
     doc.line(
       config.page.margins.left,
-      y - 5,
+      y - 10,
       config.page.margins.left + patientBoxWidth,
-      y - 5
+      y - 10
     );
   }
 
@@ -690,9 +1139,9 @@ export async function generatePrescriptionPDF(
       config.page.margins.right -
       config.layout.columnGap / 2;
 
-    // Draw vertical separator
+    // Draw vertical separator with green color
     doc.setDrawColor(...config.colors.border);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(1);
     doc.line(
       pageWidth * config.layout.leftColumnWidth,
       y,
@@ -704,71 +1153,22 @@ export async function generatePrescriptionPDF(
   let yLeft = y + config.layout.blockSpacing;
   let yRight = y + config.layout.blockSpacing;
 
-  // ==================== LEFT COLUMN: CLINICAL HISTORY ====================
+  // ==================== LEFT COLUMN: DYNAMIC CLINICAL HISTORY ====================
 
   if (config.clinicalHistory.show && config.layout.twoColumn) {
-    const sections = [];
+    // Create dynamic sections with calculated heights
+    const dynamicSections = createDynamicLeftColumnSections(
+      prescription,
+      config,
+      leftColumnWidth
+    );
 
-    if (
-      config.clinicalHistory.sections.labExams &&
-      prescription.medicalExams?.length
-    ) {
-      sections.push({
-        type: "list" as const,
-        title: "Lab Exams",
-        items: prescription.medicalExams,
-      });
-    }
+    // Add each section with its dynamic height
+    for (const section of dynamicSections) {
+      // Check if we need a page break
+      yLeft = checkPageBreak(doc, yLeft, section.requiredHeight + 50, config);
 
-    if (
-      config.clinicalHistory.sections.allergies &&
-      prescription.allergies?.length
-    ) {
-      sections.push({
-        type: "list" as const,
-        title: "Allergies",
-        items: prescription.allergies,
-      });
-    }
-
-    if (
-      config.clinicalHistory.sections.currentMeds &&
-      prescription.currentMedications?.length
-    ) {
-      sections.push({
-        type: "list" as const,
-        title: "Current Medications",
-        items: prescription.currentMedications,
-      });
-    }
-
-    if (
-      config.clinicalHistory.sections.familyHistory &&
-      prescription.familyHistory
-    ) {
-      sections.push({
-        type: "text" as const,
-        title: "Family History",
-        content: prescription.familyHistory,
-      });
-    }
-
-    if (
-      config.clinicalHistory.sections.socialHistory &&
-      prescription.socialHistory
-    ) {
-      sections.push({
-        type: "text" as const,
-        title: "Social History",
-        content: prescription.socialHistory,
-      });
-    }
-
-    for (const section of sections) {
-      // For Lab Exams, ensure we have enough space and check for page breaks more aggressively
-      const requiredSpace = section.title === "Lab Exams" ? 140 : 100; // Increased from 120 to 140 for better spacing
-      yLeft = checkPageBreak(doc, yLeft, requiredSpace, config);
-      yLeft = addLeftColumnSection(
+      yLeft = addDynamicLeftColumnSection(
         doc,
         section,
         yLeft,
@@ -795,12 +1195,11 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // PHYSICAL EXAM
-  if (prescription.physicalExam) {
-    yRight = checkPageBreak(doc, yRight, 50, config);
-    yRight = addRightColumnSection(
+  // SYSTEM EXAMINATIONS
+  if (hasSystemExaminations(prescription)) {
+    yRight = checkPageBreak(doc, yRight, 100, config);
+    yRight = addSystemExaminations(
       doc,
-      "physicalExam",
       yRight,
       rightColumnX,
       rightColumnWidth,
@@ -809,10 +1208,9 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // MEDICATIONS - Updated to support bilingual Frequency, Duration, Instructions
+  // MEDICATIONS
   if (config.medications.show) {
     yRight = checkPageBreak(doc, yRight, 100, config);
-    // Move medications section down by 10 pixels
     yRight += 20;
     yRight = addMedicationsTable(
       doc,
@@ -824,16 +1222,14 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // POST-MEDICATION SECTIONS: Removed chief complaint, care instructions, restrictions, and general instructions
-  // Adding extra spacing after medications for better section separation
+  // Add extra spacing after medications
   yRight += 15;
 
   // ==================== SIGNATURE ====================
 
   if (config.signature.show) {
-    // Always position signature at the bottom, above the footer
     const footerHeight = config.footer.show ? config.footer.height : 0;
-    const signatureY = pageHeight - footerHeight - 80; // 80px above footer
+    const signatureY = pageHeight - footerHeight - 80;
     addSignature(doc, signatureY, pageWidth, prescription, config);
   }
 
@@ -887,7 +1283,10 @@ function createPatientInfoRows(
       label: "Height",
       value: prescription.height ? `${prescription.height} cm` : "N/A",
     },
-
+    bmi: {
+      label: "BMI",
+      value: prescription.bmi || "N/A",
+    },
     address: {
       label: "Address",
       value: prescription.patientAddress || "N/A",
@@ -906,163 +1305,6 @@ function createPatientInfoRows(
   return rows;
 }
 
-function addLeftColumnSection(
-  doc: jsPDF,
-  section: any,
-  y: number,
-  x: number,
-  width: number,
-  config: PDFConfig
-): number {
-  // Section header
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.subheading);
-  doc.setTextColor(...config.colors.primary);
-  doc.text(section.title, x, y);
-
-  y += config.layout.blockSpacing;
-
-  // Calculate the total height needed for this section
-  let totalContentHeight = 0;
-  const contentStartY = y;
-  const paddingTop = 8;
-  const paddingBottom = 8;
-  const paddingLeft = 10;
-
-  if (section.type === "list") {
-    const isLabExams = section.title === "Lab Exams";
-
-    // Calculate line spacing based on section type
-    const baseLineSpacing = isLabExams ? 22 : 15;
-    const wrappedLineHeight = 14; // Height for each wrapped line
-
-    // Process each item to calculate total height
-    section.items.forEach((item: string, index: number) => {
-      const itemText = `${index + 1}. ${item}`;
-
-      if (isLabExams) {
-        // For Lab Exams, calculate wrapped text height
-        const maxWidth = width - 2 * paddingLeft;
-        const lines = doc.splitTextToSize(itemText, maxWidth);
-
-        // For the first item, start with padding
-        if (index === 0) {
-          totalContentHeight += paddingTop;
-        }
-
-        // Add height for this item
-        totalContentHeight += lines.length * wrappedLineHeight;
-
-        // Add spacing between items (except after last item)
-        if (index < section.items.length - 1) {
-          totalContentHeight += 6; // Spacing between items
-        }
-
-        // For last item, add bottom padding
-        if (index === section.items.length - 1) {
-          totalContentHeight += paddingBottom;
-        }
-      } else {
-        // For non-Lab Exams sections
-        if (index === 0) {
-          totalContentHeight += paddingTop;
-        }
-
-        totalContentHeight += baseLineSpacing;
-
-        if (index === section.items.length - 1) {
-          totalContentHeight += paddingBottom;
-        }
-      }
-    });
-  } else {
-    // For text sections
-    const contentLines = doc.splitTextToSize(
-      section.content,
-      width - 2 * paddingLeft
-    );
-    const lineHeight = 12; // Height for each text line
-    totalContentHeight =
-      paddingTop + contentLines.length * lineHeight + paddingBottom;
-  }
-
-  // Ensure minimum height
-  const minHeight = config.clinicalHistory.boxHeight;
-  const boxHeight = Math.max(totalContentHeight, minHeight);
-
-  // Draw the background box
-  doc.setFillColor(...config.colors.bgLight);
-  doc.setDrawColor(...config.colors.border);
-  doc.setLineWidth(0.5);
-
-  if (config.clinicalHistory.boxStyle === "rounded") {
-    doc.roundedRect(x, contentStartY - 5, width, boxHeight, 3, 3, "FD");
-  } else {
-    doc.rect(x, contentStartY - 5, width, boxHeight, "FD");
-  }
-
-  // Draw the content
-  if (section.type === "list") {
-    const isLabExams = section.title === "Lab Exams";
-
-    doc.setFont(config.typography.defaultFont, "normal");
-    const fontSize = isLabExams
-      ? config.typography.fontSizes.small
-      : config.typography.fontSizes.small;
-    doc.setFontSize(fontSize);
-    doc.setTextColor(...config.colors.textDark);
-
-    let currentY = contentStartY + paddingTop;
-
-    section.items.forEach((item: string, index: number) => {
-      const itemText = `${index + 1}. ${item}`;
-
-      if (isLabExams) {
-        // For Lab Exams, wrap text and handle multiline items
-        const maxWidth = width - 2 * paddingLeft;
-        const lines = doc.splitTextToSize(itemText, maxWidth);
-
-        // Draw each line
-        lines.forEach((line: string, lineIndex: number) => {
-          doc.text(line, x + paddingLeft, currentY + lineIndex * 14);
-        });
-
-        // Update currentY position for next item
-        currentY += lines.length * 14;
-
-        // Add spacing between items (except after last item)
-        if (index < section.items.length - 1) {
-          currentY += 6; // Spacing between items
-        }
-      } else {
-        // For non-Lab Exams sections
-        doc.text(itemText, x + paddingLeft, currentY);
-        currentY += 15; // Standard line spacing
-
-        // Add extra spacing between items
-        if (index < section.items.length - 1) {
-          currentY += 3;
-        }
-      }
-    });
-  } else {
-    // For text sections
-    const contentLines = doc.splitTextToSize(
-      section.content,
-      width - 2 * paddingLeft
-    );
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text(contentLines, x + paddingLeft, contentStartY + paddingTop);
-  }
-
-  // Update y position for next section
-  y = contentStartY + boxHeight + config.layout.blockSpacing;
-
-  return y;
-}
-
 function addRightColumnSection(
   doc: jsPDF,
   sectionType: string,
@@ -1074,12 +1316,12 @@ function addRightColumnSection(
 ): number {
   const sectionTitles = {
     vitalSigns: "Vital Signs",
-    physicalExam: "Physical Examination",
+    medicalHistory: "Medical History",
   };
 
   const title = sectionTitles[sectionType as keyof typeof sectionTitles];
 
-  // Section header
+  // Section header with green accent
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y - 8, 5, 22, "F");
 
@@ -1095,8 +1337,15 @@ function addRightColumnSection(
     case "vitalSigns":
       y = addVitalSignsGrid(doc, y, x, width, prescription, config);
       break;
-    case "physicalExam":
-      y = addTextContent(doc, y, x, width, prescription.physicalExam!, config);
+    case "medicalHistory":
+      y = addTextContent(
+        doc,
+        y,
+        x,
+        width,
+        prescription.pastMedicalHistory!,
+        config
+      );
       break;
   }
 
@@ -1156,43 +1405,54 @@ function addVitalSignsGrid(
 
   const startX = x + 10;
   const startY = y;
-  const cellWidth = config.vitalSigns.cell.width;
+  const cellWidth = 55;
   const cellHeight = config.vitalSigns.cell.height;
   const gap = config.vitalSigns.cell.gap;
-  const columns = config.vitalSigns.gridColumns;
 
+  // Calculate total width needed for all vital signs
+  const totalWidth =
+    filteredVitals.length * cellWidth + (filteredVitals.length - 1) * gap;
+
+  // If total width exceeds available width, adjust cell width
+  const availableWidth = width - 20;
+  let actualCellWidth = cellWidth;
+
+  if (totalWidth > availableWidth) {
+    actualCellWidth =
+      (availableWidth - (filteredVitals.length - 1) * gap) /
+      filteredVitals.length;
+  }
+
+  // Draw all vital signs in a single horizontal line with green theme
   filteredVitals.forEach((vital, index) => {
-    const col = index % columns;
-    const row = Math.floor(index / columns);
-    const cellX = startX + col * (cellWidth + gap);
-    const cellY = startY + row * (cellHeight + gap);
+    const cellX = startX + index * (actualCellWidth + gap);
+    const cellY = startY;
 
-    // Cell background
-    doc.setFillColor(250, 250, 250);
+    // Cell background with light green
+    doc.setFillColor(240, 255, 240);
     if (config.vitalSigns.cell.borderRadius > 0) {
       doc.roundedRect(
         cellX,
         cellY,
-        cellWidth,
+        actualCellWidth,
         cellHeight,
         config.vitalSigns.cell.borderRadius,
         config.vitalSigns.cell.borderRadius,
         "F"
       );
     } else {
-      doc.rect(cellX, cellY, cellWidth, cellHeight, "F");
+      doc.rect(cellX, cellY, actualCellWidth, cellHeight, "F");
     }
 
     doc.setDrawColor(...config.colors.border);
     doc.setLineWidth(0.5);
-    doc.rect(cellX, cellY, cellWidth, cellHeight, "S");
+    doc.rect(cellX, cellY, actualCellWidth, cellHeight, "S");
 
-    // Label - Using smaller font and shorter labels to prevent overflow
+    // Label
     doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(7); // Reduced from 9 to 7
+    doc.setFontSize(6);
     doc.setTextColor(...config.colors.primary);
 
-    // Use abbreviated labels to prevent overflow
     const shortLabels: Record<string, string> = {
       "Pulse Rate": "Pulse",
       "Blood Pressure": "BP",
@@ -1203,14 +1463,11 @@ function addVitalSignsGrid(
     };
 
     const label = shortLabels[vital.label] || vital.label;
-
-    // Truncate label if still too long
-    const maxLabelWidth = cellWidth - 10; // Leave 5px padding on each side
+    const maxLabelWidth = actualCellWidth - 8;
     const labelWidth = doc.getTextWidth(label);
     let displayLabel = label;
 
     if (labelWidth > maxLabelWidth) {
-      // Find the maximum length that fits
       let truncated = label;
       while (
         doc.getTextWidth(truncated + "...") > maxLabelWidth &&
@@ -1221,7 +1478,7 @@ function addVitalSignsGrid(
       displayLabel = truncated + (truncated.length < label.length ? "..." : "");
     }
 
-    doc.text(displayLabel, cellX + 5, cellY + 12);
+    doc.text(displayLabel, cellX + 4, cellY + 8);
 
     // Value
     const valueText = config.vitalSigns.showUnits
@@ -1229,16 +1486,14 @@ function addVitalSignsGrid(
       : vital.value!;
 
     doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(8); // Reduced from 10 to 8
+    doc.setFontSize(7);
     doc.setTextColor(...config.colors.textDark);
 
-    // Truncate value if too long
-    const maxValueWidth = cellWidth - 10;
+    const maxValueWidth = actualCellWidth - 8;
     const valueWidth = doc.getTextWidth(valueText);
     let displayValue = valueText;
 
     if (valueWidth > maxValueWidth) {
-      // Find the maximum length that fits
       let truncated = valueText;
       while (
         doc.getTextWidth(truncated + "...") > maxValueWidth &&
@@ -1251,12 +1506,11 @@ function addVitalSignsGrid(
     }
 
     const valueTextWidth = doc.getTextWidth(displayValue);
-    const centeredX = cellX + (cellWidth - valueTextWidth) / 2;
-    doc.text(displayValue, Math.max(centeredX, cellX + 5), cellY + 22); // Adjusted Y position
+    const centeredX = cellX + (actualCellWidth - valueTextWidth) / 2;
+    doc.text(displayValue, Math.max(centeredX, cellX + 4), cellY + 16);
   });
 
-  const rows = Math.ceil(filteredVitals.length / columns);
-  y += rows * (cellHeight + gap) + 10;
+  y += cellHeight + 5;
   return y;
 }
 
@@ -1279,26 +1533,6 @@ function addTextContent(
   return y;
 }
 
-function addCompactTextContent(
-  doc: jsPDF,
-  y: number,
-  x: number,
-  width: number,
-  text: string,
-  config: PDFConfig
-): number {
-  const lines = doc.splitTextToSize(text, width - 20);
-
-  doc.setFont(config.typography.defaultFont, "normal");
-  doc.setFontSize(config.typography.fontSizes.small); // Use smaller font size
-  doc.setTextColor(...config.colors.textDark);
-  doc.text(lines, x + 10, y);
-
-  // Use more compact spacing
-  y += lines.length * 10 + 12; // Reduced from 12 + 20 to 10 + 12
-  return y;
-}
-
 function addMedicationsTable(
   doc: jsPDF,
   y: number,
@@ -1307,7 +1541,7 @@ function addMedicationsTable(
   prescription: VoicePrescription,
   config: PDFConfig
 ): number {
-  // Section header
+  // Section header with green accent
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y - 8, 5, 22, "F");
 
@@ -1329,7 +1563,7 @@ function addMedicationsTable(
     return y;
   }
 
-  // Create headers
+  // Create headers with green theme
   const headers = config.medications.table.headers;
   const columnWidths = config.medications.table.columnWidths;
 
@@ -1346,7 +1580,7 @@ function addMedicationsTable(
     xPos += columnWidths[index];
   });
 
-  // Header separator
+  // Header separator with green color
   y += 5;
   doc.setDrawColor(...config.colors.border);
   doc.setLineWidth(0.5);
@@ -1377,7 +1611,7 @@ function addMedicationsTable(
       y += 10;
     }
 
-    // Row background
+    // Row background with light green for striped rows
     if (config.medications.table.stripedRows && index % 2 === 0) {
       doc.setFillColor(...config.colors.tableStriped);
       doc.rect(
@@ -1389,14 +1623,14 @@ function addMedicationsTable(
       );
     }
 
-    // Row data - Using bilingual fields for Frequency, Duration, Instructions
+    // Row data
     const rowData = [
       config.medications.table.showRowNumbers ? `${index + 1}.` : "",
       med.medicine || "N/A",
       getMedicationField(med, "dosage", config),
-      getMedicationField(med, "frequency", config), // Bilingual support
-      getMedicationField(med, "duration", config), // Bilingual support
-      getMedicationField(med, "instructions", config), // Bilingual support
+      getMedicationField(med, "frequency", config),
+      getMedicationField(med, "duration", config),
+      getMedicationField(med, "instructions", config),
     ];
 
     xPos = x + 10;
@@ -1406,14 +1640,12 @@ function addMedicationsTable(
 
     rowData.forEach((data, colIndex) => {
       const padding = colIndex === 0 ? 2 : 8;
-      // For bilingual text, we need to handle multiline
       const lines = doc.splitTextToSize(
         data,
         columnWidths[colIndex] - padding * 2
       );
 
       if (lines.length > 1) {
-        // If multiline, adjust positioning
         lines.forEach((line: string, lineIndex: number) => {
           doc.text(line, xPos + padding, y + lineIndex * 10);
         });
@@ -1453,7 +1685,7 @@ function addMedicationsTable(
 
         doc.setFont(config.typography.defaultFont, "italic");
         doc.setFontSize(config.typography.fontSizes.tiny);
-        doc.setTextColor(120, 120, 120);
+        doc.setTextColor(...config.colors.primary);
         doc.text(detailsText, x + 45, y, { maxWidth: width - 55 });
 
         y += 12;
@@ -1473,7 +1705,6 @@ function addSignature(
   prescription: VoicePrescription,
   config: PDFConfig
 ) {
-  // Half width layout - Medical Practitioner takes right half
   const halfWidth =
     (pageWidth - config.page.margins.left - config.page.margins.right) / 2;
   const rightSectionX = config.page.margins.left + halfWidth;
@@ -1502,8 +1733,8 @@ function addSignature(
         config.signature.lineLength;
   }
 
-  // Signature line
-  doc.setDrawColor(...config.colors.textDark);
+  // Signature line with green color
+  doc.setDrawColor(...config.colors.primary);
   doc.setLineWidth(config.signature.lineWidth);
   doc.line(signatureX, y, signatureX + config.signature.lineLength, y);
 
@@ -1541,16 +1772,20 @@ function addFooter(
 ) {
   const footerY = pageHeight - config.footer.height;
 
-  // Page numbers
+  // Page numbers with green color
   if (config.footer.showPageNumbers) {
+    doc.setFontSize(config.typography.fontSizes.tiny);
+    doc.setTextColor(...config.colors.primary);
     const pageText = `Page 1 of 1`;
     doc.text(pageText, pageWidth - config.page.margins.right, footerY, {
       align: "right",
     });
   }
 
-  // Digital note
+  // Digital note with green color
   if (config.footer.showDigitalNote) {
+    doc.setFontSize(config.typography.fontSizes.tiny);
+    doc.setTextColor(...config.colors.textDark);
     doc.text(
       "This is a digitally generated prescription.",
       pageWidth / 2,
@@ -1581,12 +1816,148 @@ function hasVitalSigns(prescription: VoicePrescription): boolean {
   ].some((v) => v && v.trim() !== "");
 }
 
+function hasSystemExaminations(prescription: VoicePrescription): boolean {
+  const examinationFields = [
+    prescription.cnsExamination,
+    prescription.cardiovascularExamination,
+    prescription.respiratoryExamination,
+    prescription.gastrointestinalExamination,
+    prescription.musculoskeletalExamination,
+    prescription.genitourinaryExamination,
+    prescription.dermatologicalExamination,
+    prescription.entExamination,
+    prescription.ophthalmologicalExamination,
+  ];
+
+  return examinationFields.some(
+    (value) =>
+      value !== undefined &&
+      value !== null &&
+      typeof value === "string" &&
+      value.trim() !== ""
+  );
+}
+
+function addSystemExaminations(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  // Section header with green accent
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y - 8, 5, 22, "F");
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.heading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("System Examinations", x + 15, y + 5);
+
+  y += 25;
+
+  const examinations = [
+    {
+      label: "CNS & Neurological Examination",
+      value: prescription.cnsExamination,
+    },
+    {
+      label: "Cardiovascular System",
+      value: prescription.cardiovascularExamination,
+    },
+    { label: "Respiratory System", value: prescription.respiratoryExamination },
+    {
+      label: "Gastrointestinal System",
+      value: prescription.gastrointestinalExamination,
+    },
+    {
+      label: "Musculoskeletal System",
+      value: prescription.musculoskeletalExamination,
+    },
+    {
+      label: "Genitourinary System",
+      value: prescription.genitourinaryExamination,
+    },
+    {
+      label: "Dermatological Examination",
+      value: prescription.dermatologicalExamination,
+    },
+    { label: "ENT Examination", value: prescription.entExamination },
+    {
+      label: "Ophthalmological Examination",
+      value: prescription.ophthalmologicalExamination,
+    },
+  ];
+
+  // Filter out examinations with no content
+  const validExaminations = examinations.filter(
+    (exam) => exam.value && exam.value.trim() !== ""
+  );
+
+  if (validExaminations.length === 0) {
+    return y;
+  }
+
+  // Two-column layout
+  const columnGap = 20;
+  const columnWidth = (width - columnGap) / 2;
+  const leftColumnX = x;
+  const rightColumnX = x + columnWidth + columnGap;
+
+  // Split examinations into two columns
+  const midpoint = Math.ceil(validExaminations.length / 2);
+  const leftColumnExams = validExaminations.slice(0, midpoint);
+  const rightColumnExams = validExaminations.slice(midpoint);
+
+  // Process left column
+  let leftY = y;
+  let rightY = y;
+  let maxY = y;
+
+  const processExamination = (
+    exam: any,
+    columnX: number,
+    currentY: number,
+    colWidth: number
+  ) => {
+    // Check for page break
+    currentY = checkPageBreak(doc, currentY, 60, config);
+
+    // Examination title with green color
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text(exam.label, columnX + 10, currentY);
+
+    currentY += 12;
+
+    // Examination content
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.tiny);
+    doc.setTextColor(...config.colors.textDark);
+
+    const lines = doc.splitTextToSize(exam.value, colWidth - 20);
+    doc.text(lines, columnX + 10, currentY);
+
+    currentY += lines.length * 10 + 15;
+    return currentY;
+  };
+
+  // Process left column examinations
+  leftColumnExams.forEach((exam) => {
+    leftY = processExamination(exam, leftColumnX, leftY, columnWidth);
+    maxY = Math.max(maxY, leftY);
+  });
+
+  // Process right column examinations
+  rightColumnExams.forEach((exam) => {
+    rightY = processExamination(exam, rightColumnX, rightY, columnWidth);
+    maxY = Math.max(maxY, rightY);
+  });
+
+  return maxY;
+}
+
 // Export with the expected name for backward compatibility
 export const downloadPrescriptionPDF = generatePrescriptionPDF;
-
-// ==================== USAGE EXAMPLES ====================
-
-/*
-Example 1: English prescription
-generatePrescriptionPDF(prescriptionData);
-*/

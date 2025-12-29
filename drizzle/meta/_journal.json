@@ -50,6 +50,20 @@
       "when": 1766822400000,
       "tag": "0006_remove_bmi_column",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766823000000,
+      "tag": "0007_make_testid_optional",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1735396731000,
+      "tag": "0008_add_system_examination_fields",
+      "breakpoints": true
     }
   ]
 }

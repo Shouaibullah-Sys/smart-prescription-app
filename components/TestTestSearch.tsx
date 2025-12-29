@@ -257,7 +257,7 @@ const TEST_BUNDLES: TestBundle[] = [
     id: "basic_panel",
     name: "Basic Health Panel",
     tests: [
-      "Complete Blood Count",
+      "CBC",
       "Basic Metabolic Panel",
       "Lipid Profile",
       "Liver Function Tests",
@@ -413,13 +413,13 @@ export function SmartTestSearch({
             type: "ai_suggested",
             data: {
               id: "ai-1",
-              name: "Complete Blood Count (CBC)",
+              name: "CBC",
               category: ["Hematology"],
               type: "Laboratory",
               preparation: ["No special preparation needed"],
               fasting_required: false,
             },
-            label: "Complete Blood Count (CBC)",
+            label: "CBC",
             description: "Recommended based on patient symptoms",
             confidence: 0.92,
             category: "Hematology",
@@ -1481,8 +1481,8 @@ export function SmartTestSearch({
               size="sm"
               className="text-xs"
               onClick={() => {
-                setSearchTerm("Complete Blood Count");
-                searchTests("Complete Blood Count", filters);
+                setSearchTerm("CBC");
+                searchTests("CBC", filters);
               }}
             >
               <Zap className="h-3 w-3 mr-1" />

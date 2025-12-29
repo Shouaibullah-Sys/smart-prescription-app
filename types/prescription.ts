@@ -24,7 +24,7 @@ export interface FormMedicine {
 export interface PrescriptionTest {
   id: string;
   prescriptionId: string;
-  testId: string;
+  testId?: string | null; // Optional - can be null when not linking to actual test records
   testName: string;
   notes?: string | null;
   priority?: string | null;
@@ -60,6 +60,20 @@ export interface Prescription {
   physicalExam?: string | null; // Added for enhanced form
   medicalExams?: string[] | null; // Added for enhanced form
   examNotes?: string | null; // Added for enhanced form
+
+  // System Examinations (Comprehensive)
+  cnsExamination?: string | null;
+  cardiovascularExamination?: string | null;
+  respiratoryExamination?: string | null;
+  gastrointestinalExamination?: string | null;
+  musculoskeletalExamination?: string | null;
+  genitourinaryExamination?: string | null;
+  dermatologicalExamination?: string | null;
+  entExamination?: string | null;
+  ophthalmologicalExamination?: string | null;
+
+  // Additional Measurements
+  bmi?: string | null;
   instructions?: string | null;
   followUp?: string | null;
   restrictions?: string | null;

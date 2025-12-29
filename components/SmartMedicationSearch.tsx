@@ -263,6 +263,10 @@ export function SmartMedicationSearch({
       // Find the matching suggestion
       const suggestion = suggestions.find((s) => s.value === selectedValue);
 
+      console.log("Selected value:", selectedValue);
+      console.log("Found suggestion:", suggestion);
+      console.log("Suggestion data:", suggestion?.data);
+
       if (!suggestion) {
         // If no matching suggestion, just update the value
         setSearchTerm(selectedValue);
@@ -271,8 +275,6 @@ export function SmartMedicationSearch({
         }
         return;
       }
-
-      console.log("Selected suggestion:", suggestion);
 
       // Update search term
       setSearchTerm(selectedValue);
@@ -285,6 +287,7 @@ export function SmartMedicationSearch({
 
       // Call onChange with the selected value and medication data
       if (onChange) {
+        console.log("Calling onChange with:", selectedValue, suggestion.data);
         onChange(selectedValue, suggestion.data);
       }
 

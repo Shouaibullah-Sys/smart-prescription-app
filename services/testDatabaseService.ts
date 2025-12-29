@@ -21,7 +21,7 @@ export class TestDatabase {
     // Laboratory Tests - Blood Tests
     {
       id: "test001",
-      name: "Complete Blood Count (CBC)",
+      name: "CBC",
       category: ["Blood Test", "Hematology"],
       type: "Laboratory",
       preparation: ["None required"],

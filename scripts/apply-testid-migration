@@ -1,0 +1,100 @@
+// scripts/apply-testid-migration-drizzle.js
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { prescriptions, medicines, prescriptionTests } from "../db/schema.js";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL must be a Neon postgres connection string");
+}
+
+// Enhanced connection configuration with timeout and retry logic
+const createConnection = () => {
+  const connectionString = process.env.DATABASE_URL!;
+
+  // Parse the connection string to add connection parameters
+  const url = new URL(connectionString);
+
+  // Add connection timeout and retry parameters
+  url.searchParams.set("connection_timeout", "10"); // 10 seconds
+  url.searchParams.set("pool_timeout", "30"); // 30 seconds
+  url.searchParams.set("statement_timeout", "60"); // 60 seconds
+  url.searchParams.set("idle_timeout", "300"); // 5 minutes
+
+  return neon(url.toString());
+};
+
+let sql = createConnection();
+
+export const db = drizzle(sql, {
+  schema: {
+    prescriptions,
+    medicines,
+    prescriptionTests,
+  },
+});
+
+async function applyTestIdMigration() {
+  try {
+    console.log("🚀 Starting test_id optional migration...");
+
+    console.log("📡 Connecting to database...");
+    
+    console.log("🔧 Making test_id column optional in prescription_tests table...");
+    
+    // Execute the migration to make test_id optional
+    await sql`
+      ALTER TABLE prescription_tests 
+      ALTER COLUMN test_id DROP NOT NULL;
+    `;
+
+    console.log("✅ Migration applied successfully!");
+
+    // Verify the change
+    console.log("🔍 Verifying changes...");
+    const result = await sql`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'prescription_tests' 
+      AND column_name = 'test_id'
+    `;
+
+    if (result.length > 0) {
+      const column = result[0];
+      console.log(`📊 test_id column status:`);
+      console.log(`   • Column: ${column.column_name}`);
+      console.log(`   • Type: ${column.data_type}`);
+      console.log(`   • Nullable: ${column.is_nullable}`);
+      
+      if (column.is_nullable === "YES") {
+        console.log("✅ test_id column is now nullable!");
+      } else {
+        console.log("❌ test_id column is still NOT NULL");
+      }
+    }
+
+    console.log("");
+    console.log("🎉 Migration completed successfully!");
+    console.log("");
+    console.log("📋 Summary:");
+    console.log("   • Made test_id column nullable in prescription_tests table");
+    console.log("   • Prescription tests can now be created without linking to test records");
+    console.log("   • Database constraint violation should be resolved");
+    console.log("");
+    console.log("🔄 Next steps:");
+    console.log("   1. Test prescription creation with medical exams");
+    console.log("   2. The constraint violation error should no longer occur");
+  } catch (error) {
+    console.error("❌ Migration failed:", error.message);
+    if (error.message.includes('relation "prescription_tests" does not exist')) {
+      console.log("");
+      console.log("🔧 The prescription_tests table does not exist. You may need to:");
+      console.log("   1. Run the initial Drizzle migration first:");
+      console.log("      npx drizzle-kit migrate");
+      console.log("   2. Or create the prescription_tests table manually");
+    }
+    process.exit(1);
+  }
+}
+
+// Run the migration
+applyTestIdMigration();

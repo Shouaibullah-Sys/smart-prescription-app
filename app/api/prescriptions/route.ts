@@ -269,6 +269,18 @@ export async function POST(request: NextRequest) {
           physicalExam: body.physicalExam || "",
           medicalExams: body.medicalExams || [],
           examNotes: body.examNotes || "",
+          // System Examinations
+          cnsExamination: body.cnsExamination || "",
+          cardiovascularExamination: body.cardiovascularExamination || "",
+          respiratoryExamination: body.respiratoryExamination || "",
+          gastrointestinalExamination: body.gastrointestinalExamination || "",
+          musculoskeletalExamination: body.musculoskeletalExamination || "",
+          genitourinaryExamination: body.genitourinaryExamination || "",
+          dermatologicalExamination: body.dermatologicalExamination || "",
+          entExamination: body.entExamination || "",
+          ophthalmologicalExamination: body.ophthalmologicalExamination || "",
+          // Additional Measurements
+          bmi: body.bmi || "",
           instructions: body.instructions || "",
           followUp: body.followUp || "",
           restrictions: body.restrictions || "",

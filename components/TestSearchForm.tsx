@@ -210,7 +210,7 @@ export function TestSearchForm({
 
   // Quick add popular tests
   const popularTests = [
-    "Complete Blood Count",
+    "CBC",
     "Lipid Profile",
     "Chest X-ray",
     "Electrocardiogram",

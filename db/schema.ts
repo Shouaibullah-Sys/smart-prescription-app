@@ -49,6 +49,20 @@ export const prescriptions = pgTable("prescriptions", {
   medicalExams: jsonb("medical_exams").$type<string[]>(),
   examNotes: text("exam_notes"),
 
+  // System Examinations (Comprehensive)
+  cnsExamination: text("cns_examination"),
+  cardiovascularExamination: text("cardiovascular_examination"),
+  respiratoryExamination: text("respiratory_examination"),
+  gastrointestinalExamination: text("gastrointestinal_examination"),
+  musculoskeletalExamination: text("musculoskeletal_examination"),
+  genitourinaryExamination: text("genitourinary_examination"),
+  dermatologicalExamination: text("dermatological_examination"),
+  entExamination: text("ent_examination"),
+  ophthalmologicalExamination: text("ophthalmological_examination"),
+
+  // Additional Measurements
+  bmi: text("bmi"),
+
   // Treatment Information
   instructions: text("instructions"),
   followUp: text("follow_up"),

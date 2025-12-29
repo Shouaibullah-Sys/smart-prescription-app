@@ -64,7 +64,6 @@ export const useColumns = ({
       patientName: safePatientName,
       patientAge: prescription.patientAge || "",
       patientGender: prescription.patientGender || "",
-      patientPhone: prescription.patientPhone || "",
       patientAddress: prescription.patientAddress || "",
       allergies: prescription.allergies || [],
       currentMedications: prescription.currentMedications || [],
@@ -74,6 +73,7 @@ export const useColumns = ({
       chiefComplaint: prescription.chiefComplaint || "",
       weight: prescription.weight || "",
       height: prescription.height || "",
+      bmi: prescription.bmi || "",
       pulseRate: prescription.pulseRate || "",
       heartRate: prescription.heartRate || "",
       bloodPressure: prescription.bloodPressure || "",
@@ -84,14 +84,21 @@ export const useColumns = ({
       // THIS IS THE CRITICAL FIELD - Include medicalExams!
       medicalExams: prescription.medicalExams || [],
       examNotes: prescription.examNotes || "",
+      // System Examinations
+      cnsExamination: prescription.cnsExamination || "",
+      cardiovascularExamination: prescription.cardiovascularExamination || "",
+      respiratoryExamination: prescription.respiratoryExamination || "",
+      gastrointestinalExamination:
+        prescription.gastrointestinalExamination || "",
+      musculoskeletalExamination: prescription.musculoskeletalExamination || "",
+      genitourinaryExamination: prescription.genitourinaryExamination || "",
+      dermatologicalExamination: prescription.dermatologicalExamination || "",
+      entExamination: prescription.entExamination || "",
+      ophthalmologicalExamination:
+        prescription.ophthalmologicalExamination || "",
       medicines: medications,
-      instructions: prescription.instructions || "",
-      followUp: prescription.followUp || "",
-      restrictions: prescription.restrictions || "",
       doctorName: safeDoctorName,
       doctorLicenseNumber: prescription.doctorLicenseNumber || "",
-      clinicName: prescription.clinicName || "",
-      clinicAddress: prescription.clinicAddress || "",
       date: prescriptionDate,
       transcription: "",
       source: prescription.source || "manual",
@@ -103,6 +110,18 @@ export const useColumns = ({
       medicalExams: voicePrescription.medicalExams,
       medicalExamsLength: voicePrescription.medicalExams?.length,
       medicalExamsContent: voicePrescription.medicalExams,
+      // System Examinations
+      cnsExamination: voicePrescription.cnsExamination,
+      cardiovascularExamination: voicePrescription.cardiovascularExamination,
+      respiratoryExamination: voicePrescription.respiratoryExamination,
+      gastrointestinalExamination:
+        voicePrescription.gastrointestinalExamination,
+      musculoskeletalExamination: voicePrescription.musculoskeletalExamination,
+      genitourinaryExamination: voicePrescription.genitourinaryExamination,
+      dermatologicalExamination: voicePrescription.dermatologicalExamination,
+      entExamination: voicePrescription.entExamination,
+      ophthalmologicalExamination:
+        voicePrescription.ophthalmologicalExamination,
     });
 
     return voicePrescription;
@@ -120,6 +139,37 @@ export const useColumns = ({
         "Original medicalExams length:",
         prescription.medicalExams?.length
       );
+      // System Examinations
+      console.log("Original CNS Examination:", prescription.cnsExamination);
+      console.log(
+        "Original Cardiovascular Examination:",
+        prescription.cardiovascularExamination
+      );
+      console.log(
+        "Original Respiratory Examination:",
+        prescription.respiratoryExamination
+      );
+      console.log(
+        "Original Gastrointestinal Examination:",
+        prescription.gastrointestinalExamination
+      );
+      console.log(
+        "Original Musculoskeletal Examination:",
+        prescription.musculoskeletalExamination
+      );
+      console.log(
+        "Original Genitourinary Examination:",
+        prescription.genitourinaryExamination
+      );
+      console.log(
+        "Original Dermatological Examination:",
+        prescription.dermatologicalExamination
+      );
+      console.log("Original ENT Examination:", prescription.entExamination);
+      console.log(
+        "Original Ophthalmological Examination:",
+        prescription.ophthalmologicalExamination
+      );
 
       const voicePrescription = convertToVoicePrescription(prescription);
 
@@ -130,6 +180,37 @@ export const useColumns = ({
       console.log(
         "Voice prescription medicalExams length:",
         voicePrescription.medicalExams?.length
+      );
+      // System Examinations in Voice Prescription
+      console.log("Voice CNS Examination:", voicePrescription.cnsExamination);
+      console.log(
+        "Voice Cardiovascular Examination:",
+        voicePrescription.cardiovascularExamination
+      );
+      console.log(
+        "Voice Respiratory Examination:",
+        voicePrescription.respiratoryExamination
+      );
+      console.log(
+        "Voice Gastrointestinal Examination:",
+        voicePrescription.gastrointestinalExamination
+      );
+      console.log(
+        "Voice Musculoskeletal Examination:",
+        voicePrescription.musculoskeletalExamination
+      );
+      console.log(
+        "Voice Genitourinary Examination:",
+        voicePrescription.genitourinaryExamination
+      );
+      console.log(
+        "Voice Dermatological Examination:",
+        voicePrescription.dermatologicalExamination
+      );
+      console.log("Voice ENT Examination:", voicePrescription.entExamination);
+      console.log(
+        "Voice Ophthalmological Examination:",
+        voicePrescription.ophthalmologicalExamination
       );
 
       await downloadPrescriptionPDF(voicePrescription);
