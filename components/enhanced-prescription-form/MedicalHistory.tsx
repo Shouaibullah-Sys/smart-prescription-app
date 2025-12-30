@@ -241,7 +241,7 @@ export function MedicalHistory({
                   </div>
                   <div className="text-left">
                     <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
-                      Family & Social History
+                      Follow Up
                     </span>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       Genetic and lifestyle factors
@@ -256,7 +256,7 @@ export function MedicalHistory({
                     className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2"
                   >
                     <Users className="h-3.5 w-3.5 text-green-600" />
-                    Family History
+                    Follow Up
                   </Label>
                   <Textarea
                     id="familyHistory"
@@ -265,12 +265,7 @@ export function MedicalHistory({
                       onUpdateField("familyHistory", e.target.value)
                     }
                     className="mt-1.5 text-xs sm:text-sm min-h-[100px] bg-gradient-to-b from-green-50 to-white dark:from-gray-800 dark:to-gray-900 border-green-100 dark:border-green-800"
-                    placeholder="• Diabetes: Father (diagnosed at 45)
-• Hypertension: Mother (controlled with medication)
-• Heart disease: Grandfather (MI at 65)
-• Cancer: No known family history
-• Other genetic disorders
-• Age at diagnosis for relatives"
+                    placeholder="• The patient returned for a prescription follow-up visit to review treatment response, medication adherence, and any reported side effects. Current symptoms, vital signs, and clinical progress were reassessed. The existing treatment plan was evaluated and continued or adjusted as appropriate, with further recommendations provided for ongoing management and monitoring."
                     rows={3}
                   />
                   <div className="flex items-center gap-2 mt-1.5">
@@ -282,40 +277,7 @@ export function MedicalHistory({
                     </div>
                   </div>
                 </div>
-                <div>
-                  <Label
-                    htmlFor="socialHistory"
-                    className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2"
-                  >
-                    <Users className="h-3.5 w-3.5 text-blue-500" />
-                    Social History
-                  </Label>
-                  <Textarea
-                    id="socialHistory"
-                    value={prescription.socialHistory || ""}
-                    onChange={(e) =>
-                      onUpdateField("socialHistory", e.target.value)
-                    }
-                    className="mt-1.5 text-xs sm:text-sm min-h-[100px] bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 border-blue-100 dark:border-blue-800"
-                    placeholder="• Smoking: Non-smoker (never smoked)
-• Alcohol: Occasional (1-2 drinks/week)
-• Occupation: Office worker (sedentary)
-• Exercise: Regular walking (30 min, 3x/week)
-• Diet: Balanced, occasional fast food
-• Substance use: None
-• Sleep: 6-7 hours/night
-• Stress level: Moderate (work-related)"
-                    rows={3}
-                  />
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <div className="text-xs text-muted-foreground pl-1">
-                      Lifestyle habits, occupation, and social factors
-                    </div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium ml-auto">
-                      {prescription.socialHistory?.length || 0} characters
-                    </div>
-                  </div>
-                </div>
+                <div></div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
