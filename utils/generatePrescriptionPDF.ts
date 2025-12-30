@@ -422,6 +422,95 @@ export const defaultPDFConfig: PDFConfig = {
   },
 };
 
+// ==================== TRANSLATIONS ====================
+
+/**
+ * Persian translations for section headers
+ */
+const HEADER_TRANSLATIONS = {
+  "Chief Complaint": "شکایت اصلی",
+  "History of the Chief Complain": "تاریخچه شکایت اصلی",
+  "Past Medical History": "تاریخچه طبی گذشته",
+  "System Examinations": "معاینات سیستمی",
+  "Lab Exams": "معاینات لابراتواری",
+  "Medical History": "تاریخچه پزشکی",
+  "Social History": "سابقه اجتماعی",
+  "Family History": "سابقه خانوادگی",
+  Allergies: "حساسیت‌ها",
+  "Medical Tests": "آزمایشات پزشکی",
+  "Exam Notes": "یادداشت‌های معاینه",
+  "Current Medications": "داروهای فعلی",
+  "VITAL SIGNS": "علائم حیاتی",
+  PRESCRIPTIONS: "نسخه‌ها",
+  DIAGNOSIS: "تشخیص",
+  "Medical Practitioner": "پزشک معالج",
+  "Follow Up": "پیگیری",
+};
+
+/**
+ * Draw bilingual text with proper font handling
+ */
+function drawBilingualText(
+  doc: jsPDF,
+  englishText: string,
+  persianText: string,
+  x: number,
+  y: number,
+  config: PDFConfig
+): void {
+  // English
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.text(englishText, x, y);
+
+  if (persianText) {
+    const englishWidth = doc.getTextWidth(englishText);
+
+    // Persian (USE VAZIRMATN)
+    doc.setFont("vazirmatn", "normal");
+    doc.text(persianText, x + englishWidth + 8, y);
+  }
+}
+
+/**
+ * Draw bilingual text with Persian below English (vertical layout)
+ */
+function drawBilingualTextVertical(
+  doc: jsPDF,
+  englishText: string,
+  persianText: string,
+  x: number,
+  y: number,
+  config: PDFConfig
+): number {
+  // English
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.text(englishText, x, y);
+
+  let currentY = y;
+
+  if (persianText) {
+    // Calculate the line height for the current font size
+    const lineHeight =
+      config.typography.fontSizes.subheading *
+      config.typography.lineHeights.normal;
+
+    // Move to next line for Persian
+    currentY += lineHeight + 2;
+
+    // Persian (USE VAZIRMATN)
+    doc.setFont("vazirmatn", "normal");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.text(persianText, x, currentY);
+
+    // Return the final Y position
+    currentY += lineHeight;
+  }
+
+  return currentY;
+}
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
@@ -567,24 +656,64 @@ function drawFixedHeightSection(
   doc.rect(x, y, 3, height, "F");
 
   // Section title
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.subheading);
-  doc.setTextColor(...config.colors.sectionHeader);
-  doc.text(title, x + padding.left + 5, y + padding.top + 8);
+  const persianTranslation =
+    HEADER_TRANSLATIONS[title as keyof typeof HEADER_TRANSLATIONS];
+
+  // Apply vertical layout to sections that need Persian below English
+  const verticalLayoutSections = [
+    "History of the Chief Complain",
+    "Past Medical History",
+    "System Examinations",
+  ];
+
+  if (persianTranslation && verticalLayoutSections.includes(title)) {
+    // Use vertical layout for these specific sections (Persian below English)
+    const titleY = drawBilingualTextVertical(
+      doc,
+      title,
+      persianTranslation,
+      x + padding.left + 5,
+      y + padding.top + 8,
+      config
+    );
+  } else if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      title,
+      persianTranslation,
+      x + padding.left + 5,
+      y + padding.top + 8,
+      config
+    );
+  } else {
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.sectionHeader);
+    doc.text(title, x + padding.left + 5, y + padding.top + 8);
+  }
 
   // Draw a subtle divider under title
   doc.setDrawColor(...config.colors.divider);
   doc.setLineWidth(0.2);
-  doc.line(
-    x + padding.left,
-    y + padding.top + 12,
-    x + width - padding.right,
-    y + padding.top + 12
-  );
+
+  // Calculate divider position based on whether we used vertical layout
+  let titleEndY;
+
+  if (persianTranslation && verticalLayoutSections.includes(title)) {
+    // For vertical layout, calculate the Y position after both English and Persian
+    const lineHeight =
+      config.typography.fontSizes.subheading *
+      config.typography.lineHeights.normal;
+    titleEndY = y + padding.top + 8 + (lineHeight + 2) + lineHeight;
+  } else {
+    // For horizontal layout, use the original position
+    titleEndY = y + padding.top + 12;
+  }
+
+  doc.line(x + padding.left, titleEndY, x + width - padding.right, titleEndY);
 
   // Content area
-  const contentY =
-    y + padding.top + config.typography.fontSizes.subheading * 1.2 + 5;
+  const contentY = titleEndY + 5;
 
   // Optimize font size for content
   let fontSize = config.typography.fontSizes.tiny;
@@ -816,12 +945,12 @@ function collectSystemExaminations(
   const systemExaminations: Array<{ label: string; value: string }> = [];
 
   const examinationFields = [
-    { key: "cnsExamination", label: "CNS Examination" },
-    { key: "cardiovascularExamination", label: "Cardiovascular Examination" },
-    { key: "respiratoryExamination", label: "Respiratory Examination" },
+    { key: "cnsExamination", label: "Investigation" },
+    { key: "cardiovascularExamination", label: "Palpation" },
+    { key: "respiratoryExamination", label: "Percussion" },
     {
       key: "gastrointestinalExamination",
-      label: "Gastrointestinal Examination",
+      label: "Auscultation",
     },
     { key: "musculoskeletalExamination", label: "Musculoskeletal Examination" },
     { key: "genitourinaryExamination", label: "Genitourinary Examination" },
@@ -908,9 +1037,9 @@ function calculateLeftColumnLayout(
     sections.push({
       title: "System Examinations",
       content: { systemExaminations: systemExams },
-      height: 120, // Fixed height for system examinations
+      height: 160, // Reduced from 120 to better fit actual content
     });
-    totalHeight += 120 + config.layout.sectionSpacing;
+    totalHeight += 160 + config.layout.sectionSpacing;
   }
 
   if (
@@ -1016,6 +1145,9 @@ export async function generatePrescriptionPDF(
     unit: config.page.unit,
     format: config.page.format,
   });
+
+  // Set up font support
+  doc.setFont("helvetica", "normal");
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -1274,7 +1406,19 @@ function addCompactVitalSigns(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text("VITAL SIGNS", x + 10, y + 11);
+  const persianTranslation = HEADER_TRANSLATIONS["VITAL SIGNS"];
+  if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      "VITAL SIGNS",
+      persianTranslation,
+      x + 10,
+      y + 11,
+      config
+    );
+  } else {
+    doc.text("VITAL SIGNS", x + 10, y + 11);
+  }
 
   y += 22;
 
@@ -1391,9 +1535,21 @@ function addCompactMedicationsTable(
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.heading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("PRESCRIPTIONS", x + 10, y + 11);
+    const persianTranslation = HEADER_TRANSLATIONS["PRESCRIPTIONS"];
+    if (persianTranslation) {
+      drawBilingualText(
+        doc,
+        "PRESCRIPTIONS",
+        persianTranslation,
+        x + 10,
+        y + 11,
+        config
+      );
+    } else {
+      doc.text("PRESCRIPTIONS", x + 10, y + 11);
+    }
 
-    y += 22;
+    y += 28; // Increased spacing from 22 to 28 for consistency
 
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
@@ -1410,9 +1566,21 @@ function addCompactMedicationsTable(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text("PRESCRIPTIONS", x + 10, y + 11);
+  const persianTranslation = HEADER_TRANSLATIONS["PRESCRIPTIONS"];
+  if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      "PRESCRIPTIONS",
+      persianTranslation,
+      x + 10,
+      y + 11,
+      config
+    );
+  } else {
+    doc.text("PRESCRIPTIONS", x + 10, y + 11);
+  }
 
-  y += 22;
+  y += 28; // Increased spacing from 22 to 28 for more space between title and table
 
   const headers = config.medications.table.headers;
   const columnWidths = config.medications.table.columnWidths;
@@ -1434,11 +1602,11 @@ function addCompactMedicationsTable(
   }
 
   // Header line
-  y += 4;
+  y += 6;
   doc.setDrawColor(...config.colors.border);
   doc.setLineWidth(0.3);
   doc.line(startX, y, startX + totalWidth, y);
-  y += 8;
+  y += 10;
 
   // Track if we've added a new page
   let currentPage = 1;
@@ -1589,7 +1757,19 @@ function addDiagnosisSection(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text("DIAGNOSIS", x + 10, y + 11);
+  const persianTranslation = HEADER_TRANSLATIONS["DIAGNOSIS"];
+  if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      "DIAGNOSIS",
+      persianTranslation,
+      x + 10,
+      y + 11,
+      config
+    );
+  } else {
+    doc.text("DIAGNOSIS", x + 10, y + 11);
+  }
 
   y += 22;
 
@@ -1683,9 +1863,21 @@ function addFooter(
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.primary);
 
-    // Draw "Follow Up:" label
+    // Draw "Follow Up:" label with Persian translation
     doc.setFont(config.typography.defaultFont, "bold");
-    doc.text("Follow Up:", pageWidth / 2, footerY - 27, { align: "center" });
+    const persianTranslation = HEADER_TRANSLATIONS["Follow Up"];
+    if (persianTranslation) {
+      drawBilingualText(
+        doc,
+        "Follow Up:",
+        persianTranslation + ":",
+        pageWidth / 2,
+        footerY - 27,
+        config
+      );
+    } else {
+      doc.text("Follow Up:", pageWidth / 2, footerY - 27, { align: "center" });
+    }
 
     // Draw follow up content
     doc.setFont(config.typography.defaultFont, "normal");
@@ -1694,7 +1886,7 @@ function addFooter(
       pageWidth - 80 // Leave some margin on sides
     );
 
-    let currentY = footerY - 20;
+    let currentY = footerY - 15; // Increased spacing from -20 to -15 for more space
     for (let i = 0; i < followUpLines.length; i++) {
       doc.text(followUpLines[i], pageWidth / 2, currentY, { align: "center" });
       currentY +=
