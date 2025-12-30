@@ -69,6 +69,9 @@ const categoryIcons = {
   Neurological: Brain,
   Allergy: Zap,
   Musculoskeletal: Activity,
+  Gastrointestinal: Activity,
+  "Infectious Disease": Zap,
+  Dermatology: Activity,
 };
 
 const urgencyConfig = {
@@ -152,10 +155,10 @@ export default function PresetsTab({
   const presetTemplates: PresetTemplate[] = useMemo(() => {
     return Object.values(presets).map((preset) => ({
       id: preset.id,
-      name: preset.diagnosis || "Unknown Condition",
-      category: getCategoryFromDiagnosis(preset.diagnosis || ""),
+      name: preset.chiefComplaint || "Unknown Condition",
+      category: getCategoryFromDiagnosis(preset.chiefComplaint || ""),
       urgency: getUrgencyFromCategory(
-        getCategoryFromDiagnosis(preset.diagnosis || "")
+        getCategoryFromDiagnosis(preset.chiefComplaint || "")
       ),
       description: preset.chiefComplaint || "Medical condition",
       prescription: preset,
@@ -176,7 +179,9 @@ export default function PresetsTab({
       return "Endocrine";
     } else if (
       diagnosisLower.includes("anxiety") ||
-      diagnosisLower.includes("psychiatric")
+      diagnosisLower.includes("psychiatric") ||
+      diagnosisLower.includes("depression") ||
+      diagnosisLower.includes("insomnia")
     ) {
       return "Psychiatric";
     } else if (
@@ -196,9 +201,29 @@ export default function PresetsTab({
       return "Allergy";
     } else if (
       diagnosisLower.includes("arthritis") ||
-      diagnosisLower.includes("musculoskeletal")
+      diagnosisLower.includes("musculoskeletal") ||
+      diagnosisLower.includes("back pain")
     ) {
       return "Musculoskeletal";
+    } else if (
+      diagnosisLower.includes("gerd") ||
+      diagnosisLower.includes("gastroesophageal") ||
+      diagnosisLower.includes("gastrointestinal")
+    ) {
+      return "Gastrointestinal";
+    } else if (
+      diagnosisLower.includes("pneumonia") ||
+      diagnosisLower.includes("bronchitis") ||
+      diagnosisLower.includes("otitis") ||
+      diagnosisLower.includes("infectious")
+    ) {
+      return "Infectious Disease";
+    } else if (
+      diagnosisLower.includes("eczema") ||
+      diagnosisLower.includes("dermatitis") ||
+      diagnosisLower.includes("dermatology")
+    ) {
+      return "Dermatology";
     } else {
       return "Respiratory"; // Default category
     }
@@ -214,6 +239,9 @@ export default function PresetsTab({
       Allergy: "low",
       Musculoskeletal: "medium",
       Respiratory: "low",
+      Gastrointestinal: "medium",
+      "Infectious Disease": "high",
+      Dermatology: "low",
     };
     return urgencyMap[category] || "medium";
   }

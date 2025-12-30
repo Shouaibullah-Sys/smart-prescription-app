@@ -153,12 +153,12 @@ export default function CreatePresetForm({
   useEffect(() => {
     if (preset && isEditMode) {
       setFormData({
-        name: preset.diagnosis || "",
-        diagnosis: preset.diagnosis || "",
+        name: preset.id || "",
+        diagnosis: preset.chiefComplaint || "",
         chiefComplaint: preset.chiefComplaint || "",
-        category: getCategoryFromDiagnosis(preset.diagnosis || ""),
+        category: getCategoryFromDiagnosis(preset.chiefComplaint || ""),
         urgency: getUrgencyFromCategory(
-          getCategoryFromDiagnosis(preset.diagnosis || "")
+          getCategoryFromDiagnosis(preset.chiefComplaint || "")
         ),
         instructions: preset.instructions || "",
         followUp: preset.followUp || "",
@@ -218,7 +218,9 @@ export default function CreatePresetForm({
       return "Endocrine";
     } else if (
       diagnosisLower.includes("anxiety") ||
-      diagnosisLower.includes("psychiatric")
+      diagnosisLower.includes("psychiatric") ||
+      diagnosisLower.includes("depression") ||
+      diagnosisLower.includes("insomnia")
     ) {
       return "Psychiatric";
     } else if (
@@ -238,9 +240,29 @@ export default function CreatePresetForm({
       return "Allergy";
     } else if (
       diagnosisLower.includes("arthritis") ||
-      diagnosisLower.includes("musculoskeletal")
+      diagnosisLower.includes("musculoskeletal") ||
+      diagnosisLower.includes("back pain")
     ) {
       return "Musculoskeletal";
+    } else if (
+      diagnosisLower.includes("gerd") ||
+      diagnosisLower.includes("gastroesophageal") ||
+      diagnosisLower.includes("gastrointestinal")
+    ) {
+      return "Gastrointestinal";
+    } else if (
+      diagnosisLower.includes("pneumonia") ||
+      diagnosisLower.includes("bronchitis") ||
+      diagnosisLower.includes("otitis") ||
+      diagnosisLower.includes("infectious")
+    ) {
+      return "Infectious Disease";
+    } else if (
+      diagnosisLower.includes("eczema") ||
+      diagnosisLower.includes("dermatitis") ||
+      diagnosisLower.includes("dermatology")
+    ) {
+      return "Dermatology";
     } else {
       return "Respiratory"; // Default category
     }
@@ -256,6 +278,9 @@ export default function CreatePresetForm({
       Allergy: "low",
       Musculoskeletal: "medium",
       Respiratory: "low",
+      Gastrointestinal: "medium",
+      "Infectious Disease": "high",
+      Dermatology: "low",
     };
     return urgencyMap[category] || "medium";
   }
@@ -462,10 +487,11 @@ export default function CreatePresetForm({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+
+      <DialogContent className="!max-w-[1200px] !w-[95vw] max-h-[95vh] overflow-y-auto px-4">
+        <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-xl">
               <Stethoscope className="h-5 w-5" />
               {isEditMode ? "Edit Medical Preset" : "Create Medical Preset"}
             </DialogTitle>
@@ -486,347 +512,370 @@ export default function CreatePresetForm({
               </Button>
             )}
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-base">
             {isEditMode
               ? "Update the medical preset template. Changes will be saved to your presets library."
               : "Create a custom medical preset that can be reused for similar conditions. This template will be saved to your presets library."}
           </DialogDescription>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Preset Name *</Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g., Common Cold Template"
+                      value={formData.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Preset Name *</Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g., Common Cold Template"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) =>
-                      handleInputChange("category", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonCategories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="urgency">Urgency Level</Label>
-                  <Select
-                    value={formData.urgency}
-                    onValueChange={(value) =>
-                      handleInputChange("urgency", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low Priority</SelectItem>
-                      <SelectItem value="medium">Medium Priority</SelectItem>
-                      <SelectItem value="high">High Priority</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="diagnosis">Diagnosis *</Label>
-                  <Input
-                    id="diagnosis"
-                    placeholder="e.g., Viral Upper Respiratory Tract Infection"
-                    value={formData.diagnosis}
-                    onChange={(e) =>
-                      handleInputChange("diagnosis", e.target.value)
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="chiefComplaint">Chief Complaint</Label>
-                <Textarea
-                  id="chiefComplaint"
-                  placeholder="e.g., Runny nose, sneezing, mild cough for 3 days"
-                  value={formData.chiefComplaint}
-                  onChange={(e) =>
-                    handleInputChange("chiefComplaint", e.target.value)
-                  }
-                  rows={2}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Medications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Pill className="h-5 w-5" />
-                Medications
-              </CardTitle>
-              <CardDescription>
-                Add medications that are typically prescribed for this condition
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {medicines.map((medicine, index) => (
-                <Card key={medicine.id} className="border-dashed">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge variant="outline">Medication {index + 1}</Badge>
-                      {medicines.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMedicine(medicine.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) =>
+                          handleInputChange("category", value)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commonCategories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Medicine Name *</Label>
-                        <Input
-                          placeholder="e.g., Acetaminophen"
-                          value={medicine.medicine}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "medicine",
-                              e.target.value
-                            )
-                          }
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Dosage *</Label>
-                        <Input
-                          placeholder="e.g., 500 mg"
-                          value={medicine.dosage}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "dosage",
-                              e.target.value
-                            )
-                          }
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Frequency</Label>
-                        <Select
-                          value={medicine.frequency}
-                          onValueChange={(value) =>
-                            updateMedicine(medicine.id, "frequency", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {commonFrequencies.map((freq) => (
-                              <SelectItem key={freq} value={freq}>
-                                {freq}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Duration</Label>
-                        <Input
-                          placeholder="e.g., 5 days, Ongoing, PRN"
-                          value={medicine.duration}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "duration",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Route</Label>
-                        <Select
-                          value={medicine.route}
-                          onValueChange={(value) =>
-                            updateMedicine(medicine.id, "route", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select route" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {commonRoutes.map((route) => (
-                              <SelectItem key={route} value={route}>
-                                {route}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Timing</Label>
-                        <Input
-                          placeholder="e.g., With breakfast, Before bed"
-                          value={medicine.timing}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "timing",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Instructions</Label>
-                        <Input
-                          placeholder="e.g., Take with food"
-                          value={medicine.instructions}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "instructions",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <Input
-                          placeholder="e.g., Monitor for side effects"
-                          value={medicine.notes}
-                          onChange={(e) =>
-                            updateMedicine(medicine.id, "notes", e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`withFood-${medicine.id}`}
-                          checked={medicine.withFood}
-                          onChange={(e) =>
-                            updateMedicine(
-                              medicine.id,
-                              "withFood",
-                              e.target.checked
-                            )
-                          }
-                          className="rounded border-gray-300"
-                        />
-                        <Label htmlFor={`withFood-${medicine.id}`}>
-                          Take with food
-                        </Label>
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="urgency">Urgency Level</Label>
+                      <Select
+                        value={formData.urgency}
+                        onValueChange={(value) =>
+                          handleInputChange("urgency", value)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low Priority</SelectItem>
+                          <SelectItem value="medium">
+                            Medium Priority
+                          </SelectItem>
+                          <SelectItem value="high">High Priority</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addMedicine}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Another Medication
-              </Button>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="diagnosis">Diagnosis *</Label>
+                    <Input
+                      id="diagnosis"
+                      placeholder="e.g., Viral Upper Respiratory Tract Infection"
+                      value={formData.diagnosis}
+                      onChange={(e) =>
+                        handleInputChange("diagnosis", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
 
-          {/* Additional Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="instructions">General Instructions</Label>
-                <Textarea
-                  id="instructions"
-                  placeholder="e.g., Rest, increase fluid intake, monitor symptoms"
-                  value={formData.instructions}
-                  onChange={(e) =>
-                    handleInputChange("instructions", e.target.value)
-                  }
-                  rows={3}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="chiefComplaint">Chief Complaint</Label>
+                    <Textarea
+                      id="chiefComplaint"
+                      placeholder="e.g., Runny nose, sneezing, mild cough for 3 days"
+                      value={formData.chiefComplaint}
+                      onChange={(e) =>
+                        handleInputChange("chiefComplaint", e.target.value)
+                      }
+                      rows={3}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="followUp">Follow-up Instructions</Label>
-                <Textarea
-                  id="followUp"
-                  placeholder="e.g., Return if symptoms worsen or persist beyond 7 days"
-                  value={formData.followUp}
-                  onChange={(e) =>
-                    handleInputChange("followUp", e.target.value)
-                  }
-                  rows={2}
-                />
-              </div>
+              {/* Additional Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Additional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="instructions">General Instructions</Label>
+                    <Textarea
+                      id="instructions"
+                      placeholder="e.g., Rest, increase fluid intake, monitor symptoms"
+                      value={formData.instructions}
+                      onChange={(e) =>
+                        handleInputChange("instructions", e.target.value)
+                      }
+                      rows={3}
+                      className="min-h-[80px]"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="restrictions">
-                  Restrictions/Contraindications
-                </Label>
-                <Textarea
-                  id="restrictions"
-                  placeholder="e.g., Avoid alcohol, contraindicated in pregnancy"
-                  value={formData.restrictions}
-                  onChange={(e) =>
-                    handleInputChange("restrictions", e.target.value)
-                  }
-                  rows={2}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="followUp">Follow-up Instructions</Label>
+                    <Textarea
+                      id="followUp"
+                      placeholder="e.g., Return if symptoms worsen or persist beyond 7 days"
+                      value={formData.followUp}
+                      onChange={(e) =>
+                        handleInputChange("followUp", e.target.value)
+                      }
+                      rows={2}
+                      className="min-h-[60px]"
+                    />
+                  </div>
 
-          {/* Disclaimer */}
+                  <div className="space-y-2">
+                    <Label htmlFor="restrictions">
+                      Restrictions/Contraindications
+                    </Label>
+                    <Textarea
+                      id="restrictions"
+                      placeholder="e.g., Avoid alcohol, contraindicated in pregnancy"
+                      value={formData.restrictions}
+                      onChange={(e) =>
+                        handleInputChange("restrictions", e.target.value)
+                      }
+                      rows={2}
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Medications */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Pill className="h-5 w-5" />
+                    Medications
+                  </CardTitle>
+                  <CardDescription>
+                    Add medications that are typically prescribed for this
+                    condition
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {medicines.map((medicine, index) => (
+                    <Card key={medicine.id} className="border-dashed">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <Badge variant="outline">
+                            Medication {index + 1}
+                          </Badge>
+                          {medicines.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMedicine(medicine.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Medicine Name *</Label>
+                            <Input
+                              placeholder="e.g., Acetaminophen"
+                              value={medicine.medicine}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "medicine",
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Dosage *</Label>
+                            <Input
+                              placeholder="e.g., 500 mg"
+                              value={medicine.dosage}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "dosage",
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Frequency</Label>
+                            <Select
+                              value={medicine.frequency}
+                              onValueChange={(value) =>
+                                updateMedicine(medicine.id, "frequency", value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {commonFrequencies.map((freq) => (
+                                  <SelectItem key={freq} value={freq}>
+                                    {freq}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Duration</Label>
+                            <Input
+                              placeholder="e.g., 5 days, Ongoing, PRN"
+                              value={medicine.duration}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "duration",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Route</Label>
+                            <Select
+                              value={medicine.route}
+                              onValueChange={(value) =>
+                                updateMedicine(medicine.id, "route", value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select route" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {commonRoutes.map((route) => (
+                                  <SelectItem key={route} value={route}>
+                                    {route}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Timing</Label>
+                            <Input
+                              placeholder="e.g., With breakfast, Before bed"
+                              value={medicine.timing}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "timing",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2 col-span-1 sm:col-span-2">
+                            <Label>Instructions</Label>
+                            <Input
+                              placeholder="e.g., Take with food, Avoid dairy products"
+                              value={medicine.instructions}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "instructions",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2 col-span-1 sm:col-span-2">
+                            <Label>Notes</Label>
+                            <Input
+                              placeholder="e.g., Monitor for side effects, Check liver function"
+                              value={medicine.notes}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "notes",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2 col-span-1 sm:col-span-2">
+                            <input
+                              type="checkbox"
+                              id={`withFood-${medicine.id}`}
+                              checked={medicine.withFood}
+                              onChange={(e) =>
+                                updateMedicine(
+                                  medicine.id,
+                                  "withFood",
+                                  e.target.checked
+                                )
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <Label htmlFor={`withFood-${medicine.id}`}>
+                              Take with food
+                            </Label>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addMedicine}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Another Medication
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Disclaimer - Full Width */}
           <Card className="border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -847,7 +896,7 @@ export default function CreatePresetForm({
             </CardContent>
           </Card>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button
               type="button"
               variant="outline"
