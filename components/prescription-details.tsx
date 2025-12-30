@@ -497,12 +497,9 @@ export function PrescriptionDetails({
       }
 
       {/* Allergies & Current Medications */}
-      {((prescription.allergies &&
-        prescription.allergies.length &&
-        prescription.allergies.length > 0) ||
+      {((prescription.allergies && prescription.allergies.trim()) ||
         (prescription.currentMedications &&
-          prescription.currentMedications.length &&
-          prescription.currentMedications.length > 0)) && (
+          prescription.currentMedications.trim())) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -511,16 +508,16 @@ export function PrescriptionDetails({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {prescription.allergies && prescription.allergies.length > 0 && (
+            {prescription.allergies && prescription.allergies.trim() && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   Allergies
                 </label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {prescription.allergies.map((allergy, index) => (
+                  {prescription.allergies.split(",").map((allergy, index) => (
                     <Badge key={index} variant="destructive">
-                      {allergy}
+                      {allergy.trim()}
                     </Badge>
                   ))}
                 </div>
@@ -528,17 +525,19 @@ export function PrescriptionDetails({
             )}
 
             {prescription.currentMedications &&
-              prescription.currentMedications.length > 0 && (
+              prescription.currentMedications.trim() && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Current Medications
                   </label>
                   <div className="space-y-1 mt-1">
-                    {prescription.currentMedications.map((med, index) => (
-                      <p key={index} className="text-sm">
-                        {med}
-                      </p>
-                    ))}
+                    {prescription.currentMedications
+                      .split(",")
+                      .map((med, index) => (
+                        <p key={index} className="text-sm">
+                          {med.trim()}
+                        </p>
+                      ))}
                   </div>
                 </div>
               )}
