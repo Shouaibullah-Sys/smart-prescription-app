@@ -1,7 +1,7 @@
 // components/MultiTextInput.tsx
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,9 @@ interface MultiTextInputProps {
   inputClassName?: string;
   description?: string;
   required?: boolean;
+  tagColor?: "red" | "blue" | "green" | "amber" | "primary";
+  animationDelay?: number;
+  autoFocus?: boolean;
 }
 
 export function MultiTextInput({
@@ -27,18 +30,23 @@ export function MultiTextInput({
   inputClassName = "",
   description,
   required = false,
+  tagColor = "primary",
+  animationDelay = 50,
+  autoFocus = false,
 }: MultiTextInputProps) {
   const [inputValue, setInputValue] = useState("");
 
   const addValue = () => {
     if (inputValue.trim() && !values.includes(inputValue.trim())) {
-      onChange([...values, inputValue.trim()]);
+      const newValues = [...values, inputValue.trim()];
+      onChange(newValues);
       setInputValue("");
     }
   };
 
   const removeValue = (index: number) => {
-    onChange(values.filter((_, i) => i !== index));
+    const newValues = values.filter((_, i) => i !== index);
+    onChange(newValues);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -48,9 +56,23 @@ export function MultiTextInput({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  const colorClasses = {
+    red: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+    blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    green:
+      "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+    amber:
+      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    primary: "bg-primary/10 text-primary border-primary/20",
+  };
+
   return (
     <div className={className}>
-      <Label className="text-sm font-medium">
+      <Label className="text-xs sm:text-sm font-medium">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
@@ -64,15 +86,17 @@ export function MultiTextInput({
           {values.map((value, index) => (
             <div
               key={index}
-              className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+              className={`animate-fadeInUp flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border ${colorClasses[tagColor]}`}
+              style={{ animationDelay: `${index * animationDelay}ms` }}
             >
-              <span>{value}</span>
+              <span className="max-w-[200px] truncate">{value}</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => removeValue(index)}
-                className="h-auto p-0 w-5 hover:bg-transparent"
+                className="h-5 w-5 p-0 ml-1 hover:bg-transparent hover:opacity-70"
+                aria-label={`Remove ${value}`}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -85,20 +109,22 @@ export function MultiTextInput({
       <div className="flex gap-2">
         <Input
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyPress}
           placeholder={placeholder}
           className={`flex-1 ${inputClassName}`}
+          autoFocus={autoFocus}
         />
         <Button
           type="button"
           onClick={addValue}
           disabled={!inputValue.trim()}
           variant="outline"
-          className="flex items-center gap-1 whitespace-nowrap"
+          className="flex items-center gap-1 whitespace-nowrap min-w-[80px] justify-center"
+          size="sm"
         >
           <Plus className="h-4 w-4" />
-          Add
+          <span className="hidden sm:inline">Add</span>
         </Button>
       </div>
     </div>

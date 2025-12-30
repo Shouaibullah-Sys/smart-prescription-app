@@ -155,7 +155,26 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, any>);
 
-    const prescriptionsWithMedicines = Object.values(groupedPrescriptions);
+    // Convert arrays to strings for frontend
+    const prescriptionsWithMedicines = Object.values(groupedPrescriptions).map(
+      (prescription: any) => ({
+        ...prescription,
+        // Convert JSON arrays back to comma-separated strings for frontend
+        allergies: Array.isArray(prescription.allergies)
+          ? prescription.allergies.join(", ")
+          : prescription.allergies || "",
+        currentMedications: Array.isArray(prescription.currentMedications)
+          ? prescription.currentMedications.join(", ")
+          : prescription.currentMedications || "",
+        // Ensure medicalExams is always an array
+        medicalExams: Array.isArray(prescription.medicalExams)
+          ? prescription.medicalExams
+          : [],
+        medicines: prescription.medicines || [],
+        tests: prescription.tests || [],
+      })
+    );
+
     console.log(
       "Final grouped prescriptions:",
       prescriptionsWithMedicines.length
@@ -240,7 +259,30 @@ export async function POST(request: NextRequest) {
 
     const prescriptionId = uuidv4();
 
-    // Create prescription
+    // Prepare data - Simplified for text columns
+    const medicalExams = body.medicalExams || [];
+    const medicalExamsData = Array.isArray(medicalExams)
+      ? medicalExams
+      : typeof medicalExams === "string"
+      ? medicalExams
+          .split(",")
+          .map((item) => item.trim())
+          .filter((item) => item)
+      : [];
+
+    // Always use strings for allergies and currentMedications (database columns are text)
+    const allergiesForDb = (body.allergies || "").toString().trim();
+    const currentMedicationsForDb = (body.currentMedications || "")
+      .toString()
+      .trim();
+
+    console.log("Prepared data for insertion:", {
+      allergiesForDb,
+      currentMedicationsForDb,
+      medicalExamsData,
+    });
+
+    // Insert prescription with consistent string values (database columns are text)
     const [prescription] = await dbQuery(async () => {
       return await db
         .insert(prescriptions)
@@ -261,13 +303,13 @@ export async function POST(request: NextRequest) {
           oxygenSaturation: body.oxygenSaturation || "",
           weight: body.weight || "",
           height: body.height || "",
-          allergies: body.allergies || [],
-          currentMedications: body.currentMedications || [],
+          allergies: allergiesForDb, // Always string
+          currentMedications: currentMedicationsForDb, // Always string
           pastMedicalHistory: body.pastMedicalHistory || "",
           familyHistory: body.familyHistory || "",
           socialHistory: body.socialHistory || "",
           physicalExam: body.physicalExam || "",
-          medicalExams: body.medicalExams || [],
+          medicalExams: medicalExamsData,
           examNotes: body.examNotes || "",
           // System Examinations
           cnsExamination: body.cnsExamination || "",
@@ -305,22 +347,23 @@ export async function POST(request: NextRequest) {
         .returning();
     });
 
-    console.log("Prescription created:", prescription.id);
+    console.log("✅ Prescription created successfully:", prescription.id);
 
     // Create prescription tests if medical exams are provided
-    const medicalExams = body.medicalExams || [];
-    if (medicalExams.length > 0) {
-      console.log("Creating prescription tests for:", medicalExams);
+    if (medicalExamsData.length > 0) {
+      console.log("Creating prescription tests for:", medicalExamsData);
 
-      const prescriptionTestsData = medicalExams.map((examName: string) => ({
-        id: uuidv4(),
-        prescriptionId: prescriptionId,
-        testName: examName,
-        notes: body.examNotes || "",
-        priority: "routine",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+      const prescriptionTestsData = medicalExamsData.map(
+        (examName: string) => ({
+          id: uuidv4(),
+          prescriptionId: prescriptionId,
+          testName: examName,
+          notes: body.examNotes || "",
+          priority: "routine",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
 
       try {
         await dbQuery(async () => {
@@ -328,16 +371,14 @@ export async function POST(request: NextRequest) {
             .insert(prescriptionTests)
             .values(prescriptionTestsData);
         });
-        console.log("Prescription tests created:", medicalExams.length);
+        console.log("Prescription tests created:", medicalExamsData.length);
       } catch (testError) {
         console.error("Failed to create prescription tests:", testError);
         // Don't fail the whole request if test creation fails
       }
     }
 
-    // Create medicines if provided. Accept either `body.prescription` (form) or
-    // `body.medicines` (alternate clients). Build an array and insert in one
-    // batch so we reliably persist all items.
+    // Create medicines if provided
     const incomingMeds: IncomingMedicine[] = Array.isArray(body.prescription)
       ? body.prescription
       : Array.isArray(body.medicines)
@@ -347,29 +388,10 @@ export async function POST(request: NextRequest) {
     if (incomingMeds.length > 0) {
       console.log("Incoming medicines payload:", incomingMeds);
 
-      // DEBUG: Log each medicine individually to see the issue
-      incomingMeds.forEach((med, index) => {
-        console.log(`Medicine ${index} details:`, {
-          index,
-          medicine: med.medicine,
-          name: med.name,
-          dosage: med.dosage,
-          form: med.form,
-          frequency: med.frequency,
-          duration: med.duration,
-          hasMedicineField: "medicine" in med,
-          hasNameField: "name" in med,
-          medicineLength: med.medicine?.length || 0,
-          nameLength: med.name?.length || 0,
-          medicineTrimmed: med.medicine?.trim() || "",
-          nameTrimmed: med.name?.trim() || "",
-        });
-      });
-
       const medicinesData = incomingMeds
         .map((med: IncomingMedicine) => {
           const medicineName = (med.medicine || med.name || "").trim();
-          const dosage = (med.dosage || "").trim(); // fix mapping; fall back to empty string
+          const dosage = (med.dosage || "").trim();
 
           console.log(
             `Processing medicine: "${medicineName}" with dosage: "${dosage}"`
@@ -381,7 +403,7 @@ export async function POST(request: NextRequest) {
                 medicineName || "unknown"
               }: missing medicine name or dosage`
             );
-            return null; // skip incomplete entries
+            return null;
           }
 
           const processedMed = {
@@ -407,7 +429,6 @@ export async function POST(request: NextRequest) {
         .filter(Boolean) as any[];
 
       if (medicinesData.length > 0) {
-        // Insert all medicines in a single query for consistency and try to get returned rows (if DB supports)
         try {
           const inserted = await dbQuery(async () => {
             return await db.insert(medicines).values(medicinesData).returning();
@@ -418,7 +439,6 @@ export async function POST(request: NextRequest) {
             inserted
           );
         } catch (insertErr) {
-          // Some drivers/DBs (like SQLite with Drizzle) may not support returning(); still proceed and verify with select
           console.warn(
             "Insert returning() failed or unsupported, falling back to non-returning insert:",
             insertErr
@@ -428,7 +448,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Verify by selecting from DB to make sure rows exist
+        // Verify by selecting from DB
         try {
           const verify = await dbQuery(async () => {
             return await db
@@ -442,8 +462,6 @@ export async function POST(request: NextRequest) {
             "=>",
             verify.length
           );
-          // optional: log the rows (be careful with sensitive data)
-          console.log("Verified medicines rows:", verify);
         } catch (verifyErr) {
           console.error("Verification select after insert failed:", verifyErr);
         }
@@ -487,10 +505,24 @@ export async function POST(request: NextRequest) {
       return acc;
     }, {} as any);
 
+    // Prepare response - convert arrays to strings for frontend
     const prescriptionWithMedicines = {
       ...groupedData.prescription,
+      // Convert arrays back to comma-separated strings for frontend
+      allergies: Array.isArray(groupedData.prescription.allergies)
+        ? groupedData.prescription.allergies.join(", ")
+        : groupedData.prescription.allergies || "",
+      currentMedications: Array.isArray(
+        groupedData.prescription.currentMedications
+      )
+        ? groupedData.prescription.currentMedications.join(", ")
+        : groupedData.prescription.currentMedications || "",
       medicines: groupedData.medicines || [],
       tests: groupedData.tests || [],
+      // Ensure medicalExams is always an array
+      medicalExams: Array.isArray(groupedData.prescription.medicalExams)
+        ? groupedData.prescription.medicalExams
+        : [],
     };
 
     console.log("Returning complete prescription data");
@@ -503,20 +535,40 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create prescription error:", error);
 
-    // Check if it's a database connection error
-    if (
-      error instanceof Error &&
-      (error.message.includes("database") ||
-        error.message.includes("connection"))
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Database connection is currently unavailable. Please try again later.",
-        },
-        { status: 503 }
-      );
+    // More specific error handling
+    if (error instanceof Error) {
+      if (
+        error.message.includes("invalid input syntax for type json") ||
+        error.message.includes("22P02") ||
+        error.message.includes("json") ||
+        error.message.includes("JSON")
+      ) {
+        console.error("JSON syntax error:", error.message);
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "خطا در قالب داده‌های پزشکی. لطفاً مطمئن شوید که اطلاعات آلرژی و داروها به درستی وارد شده‌اند.",
+            details:
+              "Database column type mismatch. Please check database schema.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        error.message.includes("database") ||
+        error.message.includes("connection")
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Database connection is currently unavailable. Please try again later.",
+          },
+          { status: 503 }
+        );
+      }
     }
 
     return NextResponse.json(

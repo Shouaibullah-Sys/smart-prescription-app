@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+// Simple script to run the allergies migration
 
 /**
  * Manual migration script for adding Persian medication fields

@@ -47,7 +47,7 @@ export function PatientInformation({
           )}
           {prescription.patientGender && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-600 dark:text-gray-300">Gender:</span>
+              <span className="text-gray-600 dark:text-gray-300">Sex:</span>
               <span className="font-medium">{prescription.patientGender}</span>
             </div>
           )}
@@ -119,7 +119,7 @@ export function PatientInformation({
               onValueChange={(value) => onUpdateField("patientGender", value)}
             >
               <SelectTrigger className="text-xs sm:text-sm h-8 sm:h-10 text-foreground">
-                <SelectValue placeholder="Select Gender" />
+                <SelectValue placeholder="Select Sex" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Male">Male</SelectItem>

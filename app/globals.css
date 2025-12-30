@@ -199,3 +199,15 @@
 .dark .fixed-select-content [role="option"] {
   color: var(--foreground) !important;
 }
+from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.3s ease-out;
+}

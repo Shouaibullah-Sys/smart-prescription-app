@@ -3,6 +3,3 @@
 
 export { EnhancedPrescriptionForm } from "./EnhancedPrescriptionForm";
 export { EnhancedPrescriptionForm as default } from "./EnhancedPrescriptionForm";
-
-// Re-export all components for convenience
-export * from "./index";

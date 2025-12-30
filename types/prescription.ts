@@ -52,8 +52,8 @@ export interface Prescription {
   oxygenSaturation?: string | null;
   weight?: string | null; // Added for enhanced form
   height?: string | null; // Added for enhanced form
-  allergies?: string[] | null; // Made consistent with database schema (jsonb type)
-  currentMedications?: string[] | null; // Made consistent with database schema (jsonb type)
+  allergies?: string | null; // Simple text field for allergies
+  currentMedications?: string | null; // Simple text field for current medications
   pastMedicalHistory?: string | null;
   familyHistory?: string | null;
   socialHistory?: string | null;

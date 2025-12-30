@@ -38,8 +38,8 @@ export const prescriptions = pgTable("prescriptions", {
   height: text("height"),
 
   // Medical History
-  allergies: jsonb("allergies").$type<string[]>(),
-  currentMedications: jsonb("current_medications").$type<string[]>(),
+  allergies: text("allergies"),
+  currentMedications: text("current_medications"),
   pastMedicalHistory: text("past_medical_history"),
   familyHistory: text("family_history"),
   socialHistory: text("social_history"),

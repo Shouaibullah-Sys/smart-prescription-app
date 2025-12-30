@@ -1,4 +1,5 @@
-import React from "react";
+// components/MedicalHistory.tsx
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,8 +18,8 @@ import {
   Heart,
   Stethoscope,
 } from "lucide-react";
-import { MultiTextInput } from "@/components/MultiTextInput";
 import { Prescription } from "@/types/prescription";
+import { MultiTextInput } from "../MultiTextInput";
 
 interface MedicalHistoryProps {
   prescription: Prescription;
@@ -29,6 +30,86 @@ export function MedicalHistory({
   prescription,
   onUpdateField,
 }: MedicalHistoryProps) {
+  const [localAllergies, setLocalAllergies] = useState<string[]>([]);
+  const [localCurrentMeds, setLocalCurrentMeds] = useState<string[]>([]);
+
+  // Initialize from prescription data - FIXED PARSING
+  useEffect(() => {
+    console.log("MedicalHistory useEffect - prescription:", {
+      allergies: prescription.allergies,
+      currentMeds: prescription.currentMedications,
+    });
+
+    // FIXED: Better parsing logic for different formats
+    const parseTextToArray = (text: string | undefined): string[] => {
+      if (!text || typeof text !== "string") return [];
+
+      // If it's already an array, return it
+      if (Array.isArray(text)) return text;
+
+      const trimmedText = text.trim();
+      if (!trimmedText) return [];
+
+      // Handle different formats:
+
+      // 1. Check if it's in numbered list format (like from PDF)
+      // Format: "1. t\n2. e\n3. s\n4. t" or similar
+      if (/^\d+\.\s+.+/m.test(trimmedText)) {
+        // Split by newline and extract text after number and dot
+        return trimmedText
+          .split("\n")
+          .map((line) => {
+            const match = line.match(/^\d+\.\s+(.+)$/);
+            return match ? match[1].trim() : line.trim();
+          })
+          .filter((item) => item.length > 0);
+      }
+
+      // 2. Check if it's in bullet point format
+      if (/^[•\-*]\s+.+/m.test(trimmedText)) {
+        return trimmedText
+          .split("\n")
+          .map((line) => line.replace(/^[•\-*]\s+/, "").trim())
+          .filter((item) => item.length > 0);
+      }
+
+      // 3. Handle comma-separated values
+      if (trimmedText.includes(",")) {
+        return trimmedText
+          .split(",")
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0);
+      }
+
+      // 4. If it's a single item or unknown format, just return it as array
+      return [trimmedText];
+    };
+
+    // Parse allergies
+    const allergiesArray = parseTextToArray(
+      prescription.allergies || undefined
+    );
+    setLocalAllergies(allergiesArray);
+
+    // Parse current medications
+    const medsArray = parseTextToArray(
+      prescription.currentMedications || undefined
+    );
+    setLocalCurrentMeds(medsArray);
+  }, [prescription.allergies, prescription.currentMedications]);
+
+  const updateAllergies = (allergies: string[]) => {
+    setLocalAllergies(allergies);
+    // Join with comma and space for better readability
+    onUpdateField("allergies", allergies.join(", "));
+  };
+
+  const updateCurrentMedications = (medications: string[]) => {
+    setLocalCurrentMeds(medications);
+    // Join with comma and space for better readability
+    onUpdateField("currentMedications", medications.join(", "));
+  };
+
   return (
     <div className="flex flex-col sm:flex-row border-b dark:border-border/30 hover:bg-muted/20 transition-colors">
       {/* Left Sidebar */}
@@ -49,7 +130,6 @@ export function MedicalHistory({
 
         {/* History Quick Stats */}
         <div className="mt-3 space-y-2">
-          {/* Chief Complaint Status */}
           <div className="p-2 bg-white dark:bg-gray-800 rounded-md border border-amber-100 dark:border-amber-800">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1">
               <Activity className="h-3 w-3" />
@@ -60,25 +140,27 @@ export function MedicalHistory({
             </div>
           </div>
 
-          {/* Allergies Count */}
           <div className="p-2 bg-white dark:bg-gray-800 rounded-md border border-red-100 dark:border-red-800">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1">
               <AlertCircle className="h-3 w-3 text-red-500" />
               Diagnosis
             </div>
             <div className="text-sm font-medium mt-1">
-              {prescription.allergies?.length || 0} recorded
+              {localAllergies.length > 0
+                ? `${localAllergies.length} item(s)`
+                : "None specified"}
             </div>
           </div>
 
-          {/* Current Medications Count */}
           <div className="p-2 bg-white dark:bg-gray-800 rounded-md border border-blue-100 dark:border-blue-800">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1">
               <Heart className="h-3 w-3 text-blue-500" />
               Current Meds
             </div>
             <div className="text-sm font-medium mt-1">
-              {prescription.currentMedications?.length || 0} recorded
+              {localCurrentMeds.length > 0
+                ? `${localCurrentMeds.length} item(s)`
+                : "None specified"}
             </div>
           </div>
         </div>
@@ -109,7 +191,6 @@ export function MedicalHistory({
             </p>
           </div>
 
-          {/* Use Accordion for collapsible sections */}
           <Accordion type="multiple" className="w-full space-y-3">
             {/* Diagnosis and History */}
             <AccordionItem
@@ -131,43 +212,38 @@ export function MedicalHistory({
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pb-4 space-y-3">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <MultiTextInput
-                      label={
-                        <div className="flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 text-red-500" />
-                          Diagnosis
-                        </div>
-                      }
-                      values={prescription.allergies || []}
-                      onChange={(values) => onUpdateField("allergies", values)}
-                      placeholder="e.g., Hypertension, Diabetes, Asthma"
-                      description="Add any known medical diagnoses or conditions"
-                      className="text-xs sm:text-sm"
-                      inputClassName="bg-gradient-to-r from-red-50 to-white dark:from-gray-800 dark:to-gray-900 border-red-100 dark:border-red-800"
-                    />
-                  </div>
-                  <div>
-                    <MultiTextInput
-                      label={
-                        <div className="flex items-center gap-1">
-                          <History className="h-3.5 w-3.5 text-blue-500" />
-                          History of Chief Complaint
-                        </div>
-                      }
-                      values={prescription.currentMedications || []}
-                      onChange={(values) =>
-                        onUpdateField("currentMedications", values)
-                      }
-                      placeholder="e.g., Symptoms duration, Progression pattern, Associated factors"
-                      description="Detailed timeline and progression of the main complaint"
-                      className="text-xs sm:text-sm"
-                      inputClassName="bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 border-blue-100 dark:border-blue-800"
-                    />
-                  </div>
-                </div>
+              <AccordionContent className="pb-4 space-y-6">
+                {/* Allergies Section using MultiTextInput */}
+                <MultiTextInput
+                  label={
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                      Diagnosis
+                    </span>
+                  }
+                  values={localAllergies}
+                  onChange={updateAllergies}
+                  placeholder=" e.g., Type 2 Diabetes Mellitus, Essential Hypertension"
+                  tagColor="red"
+                  description="Type a full allergy and press Enter or click Add. For multiple allergies, add them separately."
+                  inputClassName="text-xs sm:text-sm h-8 sm:h-10 bg-gradient-to-r from-red-50 to-white dark:from-gray-800 dark:to-gray-900 border-red-100 dark:border-red-800"
+                />
+
+                {/* Current Medications Section using MultiTextInput */}
+                <MultiTextInput
+                  label={
+                    <span className="flex items-center gap-1">
+                      <History className="h-3.5 w-3.5 text-blue-500" />
+                      Current Medications
+                    </span>
+                  }
+                  values={localCurrentMeds}
+                  onChange={updateCurrentMedications}
+                  placeholder="e.g., Lisinopril 10mg, Metformin 500mg"
+                  tagColor="blue"
+                  description="Type a full medication and press Enter or click Add. For multiple medications, add them separately."
+                  inputClassName="text-xs sm:text-sm h-8 sm:h-10 bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 border-blue-100 dark:border-blue-800"
+                />
               </AccordionContent>
             </AccordionItem>
 

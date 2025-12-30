@@ -1,4 +1,4 @@
-// Medications Table component for the enhanced prescription form
+// components/MedicationsTable.tsx
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,44 @@ export function MedicationsTable({
   onRemoveMedicine,
 }: MedicationsTableProps) {
   const medicinesCount = prescription.medicines?.length || 0;
+
+  // Helper function to safely parse allergies
+  const getParsedAllergies = () => {
+    const allergies = prescription.allergies;
+
+    // If allergies is undefined or null, return empty array
+    if (!allergies) return [];
+
+    // If allergies is already an array, return it
+    if (Array.isArray(allergies)) return allergies;
+
+    // If allergies is a string, parse it
+    if (typeof allergies === "string") {
+      return allergies
+        .split(/[،,\s]+/)
+        .filter((a) => a.trim())
+        .map((a) => a.trim());
+    }
+
+    // Fallback for any other type
+    return [];
+  };
+
+  // Helper function to safely parse symptoms from chief complaint
+  const getParsedSymptoms = () => {
+    const chiefComplaint = prescription.chiefComplaint;
+
+    if (!chiefComplaint) return [];
+
+    if (typeof chiefComplaint === "string") {
+      return chiefComplaint
+        .split(/[،,]/)
+        .filter(Boolean)
+        .map((s) => s.trim());
+    }
+
+    return [];
+  };
 
   return (
     <div className="flex flex-col sm:flex-row hover:bg-muted/20">
@@ -111,12 +149,8 @@ export function MedicationsTable({
                             onMedicineInput(index, value, medication);
                           }}
                           context={{
-                            symptoms:
-                              prescription.chiefComplaint
-                                ?.split(/[،,]/)
-                                .filter(Boolean)
-                                .map((s) => s.trim()) || [],
-                            allergies: prescription.allergies || [],
+                            symptoms: getParsedSymptoms(),
+                            allergies: getParsedAllergies(),
                             age:
                               parseInt(prescription.patientAge || "0") ||
                               undefined,

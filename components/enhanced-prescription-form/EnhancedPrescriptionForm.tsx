@@ -71,12 +71,21 @@ export function EnhancedPrescriptionForm({
   });
 
   useEffect(() => {
+    console.log(
+      "useEffect triggered - prescription prop changed:",
+      prescription.allergies
+    );
     setEditablePrescription(initializePrescription(prescription));
     setSelectedExams(new Set(prescription.medicalExams || []));
     setSelectedTestObjects([]);
   }, [prescription]);
 
   function initializePrescription(prescription: Prescription): Prescription {
+    console.log(
+      "initializePrescription called with allergies:",
+      prescription.allergies
+    );
+
     const initialPrescription = Array.isArray(prescription.medicines)
       ? prescription.medicines.map((med) => ({
           ...med,
@@ -103,7 +112,7 @@ export function EnhancedPrescriptionForm({
         ? initialPrescription
         : [createEmptyMedicine()];
 
-    return {
+    const initialized = {
       ...prescription,
       patientName: prescription.patientName || "",
       medicines: safePrescription,
@@ -119,12 +128,8 @@ export function EnhancedPrescriptionForm({
       weight: prescription.weight || "",
       height: prescription.height || "",
       bmi: prescription.bmi || "",
-      allergies: Array.isArray(prescription.allergies)
-        ? prescription.allergies
-        : [],
-      currentMedications: Array.isArray(prescription.currentMedications)
-        ? prescription.currentMedications
-        : [],
+      allergies: prescription.allergies || "",
+      currentMedications: prescription.currentMedications || "",
       pastMedicalHistory: prescription.pastMedicalHistory || "",
       familyHistory: prescription.familyHistory || "",
       socialHistory: prescription.socialHistory || "",
@@ -158,6 +163,12 @@ export function EnhancedPrescriptionForm({
       ophthalmologicalExamination:
         prescription.ophthalmologicalExamination || "",
     };
+
+    console.log(
+      "initializePrescription result - allergies:",
+      initialized.allergies
+    );
+    return initialized;
   }
 
   function createEmptyMedicine(): FormMedicine {
@@ -183,10 +194,23 @@ export function EnhancedPrescriptionForm({
   }
 
   const updateField = (field: keyof Prescription, value: any) => {
-    setEditablePrescription((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    console.log("updateField called:", {
+      field,
+      value,
+      currentAllergies: editablePrescription.allergies,
+    });
+    setEditablePrescription((prev) => {
+      const updated = {
+        ...prev,
+        [field]: value,
+      };
+      console.log("Updated prescription:", {
+        field,
+        newValue: value,
+        allergies: updated.allergies,
+      });
+      return updated;
+    });
   };
 
   const updateMedicine = (
@@ -407,6 +431,12 @@ export function EnhancedPrescriptionForm({
   };
 
   const handleSave = async () => {
+    console.log(
+      "handleSave called - allergies before save:",
+      editablePrescription.allergies
+    );
+    console.log("Full prescription object being saved:", editablePrescription);
+
     if (!editablePrescription.patientName?.trim()) {
       alert("Please enter patient name");
       return;
