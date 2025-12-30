@@ -67,112 +67,6 @@ export interface VoicePrescription {
   status?: string;
 }
 
-// ==================== BILINGUAL TEXTS ====================
-const bilingualTexts = {
-  // Patient Information
-  name: { en: "Name", fa: "نام" },
-  age: { en: "Age", fa: "سن" },
-  gender: { en: "Sex", fa: "جنسیت" },
-  date: { en: "Date", fa: "تاریخ" },
-  weight: { en: "Weight", fa: "وزن" },
-  height: { en: "Height", fa: "قد" },
-  bmi: { en: "BMI", fa: "شاخص توده بدنی" },
-  address: { en: "Address", fa: "آدرس" },
-  years: { en: "years", fa: "سال" },
-  kg: { en: "kg", fa: "کیلوگرم" },
-  cm: { en: "cm", fa: "سانتی‌متر" },
-
-  // Section Headers
-  chiefComplaint: { en: "Chief Complaint", fa: "شکایت اصلی" },
-  medicalHistory: { en: "Medical History", fa: "سوابق پزشکی" },
-  historyOfChiefComplain: {
-    en: "History of the Chief Complain",
-    fa: "سابقه شکایت اصلی",
-  },
-  pastMedicalHistory: { en: "Past Medical History", fa: "سوابق بیماری قبلی" },
-  labExams: { en: "Lab Exams", fa: "آزمایشات آزمایشگاهی" },
-  systemExaminations: { en: "System Examinations", fa: "معاینات سیستمیک" },
-  diagnosis: { en: "Diagnosis", fa: "تشخیص" },
-  allergies: { en: "Allergies", fa: "آلرژی‌ها" },
-  familyHistory: { en: "Family History", fa: "سابقه خانوادگی" },
-  socialHistory: { en: "Social History", fa: "سابقه اجتماعی" },
-  examNotes: { en: "Exam Notes", fa: "یادداشت‌های معاینه" },
-
-  // Clinical Sections
-  vitalSigns: { en: "VITAL SIGNS", fa: "علائم حیاتی" },
-  prescriptions: { en: "PRESCRIPTIONS", fa: "نسخه‌ها" },
-  notSpecified: { en: "Not specified", fa: "مشخص نشده" },
-
-  // Vital Signs
-  pulseRate: { en: "PR", fa: "ضربان نبض" },
-  bloodPressure: { en: "BP", fa: "فشار خون" },
-  temperature: { en: "Temp", fa: "دما" },
-  respiratoryRate: { en: "RR", fa: "میزان تنفس" },
-  oxygenSaturation: { en: "SPO2", fa: "اشباع اکسیژن" },
-  bpm: { en: "bpm", fa: "ضربه در دقیقه" },
-  bp: { en: "mmHg", fa: "میلی‌متر جیوه" },
-  celsius: { en: "°C", fa: "درجه سلسیوس" },
-  perMinute: { en: "/min", fa: "در دقیقه" },
-  percent: { en: "%", fa: "درصد" },
-
-  // Table Headers
-  medicine: { en: "Medicine", fa: "دارو" },
-  dosage: { en: "Dosage", fa: "دوز" },
-  frequency: { en: "Frequency", fa: "تکرار" },
-  duration: { en: "Duration", fa: "مدت زمان" },
-  instructions: { en: "Instructions", fa: "دستورالعمل‌ها" },
-
-  // System Examinations
-  cnsExamination: { en: "CNS Examination", fa: "معاینه سیستم عصبی مرکزی" },
-  cardiovascularExamination: {
-    en: "Cardiovascular Examination",
-    fa: "معاینه قلبی عروقی",
-  },
-  respiratoryExamination: { en: "Respiratory Examination", fa: "معاینه تنفسی" },
-  gastrointestinalExamination: {
-    en: "Gastrointestinal Examination",
-    fa: "معاینه گوارشی",
-  },
-  musculoskeletalExamination: {
-    en: "Musculoskeletal Examination",
-    fa: "معاینه عضلانی اسکلتی",
-  },
-  genitourinaryExamination: {
-    en: "Genitourinary Examination",
-    fa: "معاینه ادراری تناسلی",
-  },
-  dermatologicalExamination: {
-    en: "Dermatological Examination",
-    fa: "معاینه پوستی",
-  },
-  entExamination: { en: "ENT Examination", fa: "معاینه گوش و حلق و بینی" },
-  ophthalmologicalExamination: {
-    en: "Ophthalmological Examination",
-    fa: "معاینه چشمی",
-  },
-
-  // Footer
-  followUp: { en: "Follow Up:", fa: "پیگیری:" },
-  digitalNote: {
-    en: "Digitally generated prescription",
-    fa: "نسخه تولید شده دیجیتال",
-  },
-  medicalPractitioner: { en: "Medical Practitioner", fa: "پزشک معالج" },
-
-  // Placeholders
-  noVitalSigns: {
-    en: "No vital signs recorded",
-    fa: "هیچ نشانه حیاتی ثبت نشده است",
-  },
-  noMedications: {
-    en: "No medications prescribed",
-    fa: "هیچ دارویی تجویز نشده است",
-  },
-
-  // Units
-  na: { en: "N/A", fa: "ندارد" },
-};
-
 // ==================== CONFIGURATION INTERFACE ====================
 export interface PDFConfig {
   // Page Layout
@@ -491,11 +385,11 @@ export const defaultPDFConfig: PDFConfig = {
     table: {
       headers: [
         "#",
-        bilingualTexts.medicine.en,
-        bilingualTexts.dosage.en,
-        bilingualTexts.frequency.en,
-        bilingualTexts.duration.en,
-        bilingualTexts.instructions.en,
+        "Medicine",
+        "Dosage",
+        "Frequency",
+        "Duration",
+        "Instructions",
       ],
       columnWidths: [15, 90, 60, 60, 60, 70], // Adjusted widths
       rowHeight: 22, // Increased row height to accommodate larger fonts
@@ -531,36 +425,13 @@ export const defaultPDFConfig: PDFConfig = {
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Get bilingual text based on configuration
- */
-function getBilingualText(
-  key: keyof typeof bilingualTexts,
-  config: PDFConfig
-): string {
-  const text = bilingualTexts[key];
-  if (!text) return key;
-
-  if (config.language.showBothLanguages) {
-    if (config.language.primary === "english") {
-      return `${text.en} ${text.fa}`;
-    } else {
-      return `${text.fa} ${text.en}`;
-    }
-  }
-
-  return config.language.primary === "english" ? text.en : text.fa;
-}
-
-/**
- * Get bilingual value from a bilingual field
+ * Get the appropriate language value from a bilingual field
  */
 function getBilingualValue(
   englishValue: string | undefined,
   persianValue: string | undefined,
   config: PDFConfig
 ): string {
-  if (!englishValue && !persianValue) return "";
-
   if (config.language.showBothLanguages && englishValue && persianValue) {
     return `${englishValue} / ${persianValue}`; // Single line format
   }
@@ -570,34 +441,6 @@ function getBilingualValue(
   }
 
   return persianValue || englishValue || "";
-}
-
-/**
- * Get bilingual table headers
- */
-function getBilingualTableHeaders(config: PDFConfig): string[] {
-  const headers = [
-    "#",
-    bilingualTexts.medicine,
-    bilingualTexts.dosage,
-    bilingualTexts.frequency,
-    bilingualTexts.duration,
-    bilingualTexts.instructions,
-  ];
-
-  return headers.map((header) => {
-    if (typeof header === "string") return header;
-
-    if (config.language.showBothLanguages) {
-      if (config.language.primary === "english") {
-        return `${header.en} ${header.fa}`;
-      } else {
-        return `${header.fa} ${header.en}`;
-      }
-    }
-
-    return config.language.primary === "english" ? header.en : header.fa;
-  });
 }
 
 /**
@@ -611,33 +454,6 @@ function getMedicationField(
   const englishValue = medication[fieldName];
   const persianValue = medication[`${fieldName}Persian`];
   return getBilingualValue(englishValue, persianValue, config);
-}
-
-/**
- * Get vital sign unit with bilingual support
- */
-function getVitalSignUnit(key: string, config: PDFConfig): string {
-  const unitMap: Record<string, { en: string; fa: string }> = {
-    pulse: bilingualTexts.bpm,
-    bp: bilingualTexts.bp,
-    temp: bilingualTexts.celsius,
-    respiratory: bilingualTexts.perMinute,
-    oxygen: bilingualTexts.percent,
-  };
-
-  if (!unitMap[key]) return "";
-
-  if (config.language.showBothLanguages) {
-    if (config.language.primary === "english") {
-      return `${unitMap[key].en} ${unitMap[key].fa}`;
-    } else {
-      return `${unitMap[key].fa} ${unitMap[key].en}`;
-    }
-  }
-
-  return config.language.primary === "english"
-    ? unitMap[key].en
-    : unitMap[key].fa;
 }
 
 /**
@@ -721,7 +537,7 @@ function optimizeFontSizeForContent(
  */
 function drawFixedHeightSection(
   doc: jsPDF,
-  titleKey: keyof typeof bilingualTexts,
+  title: string,
   content: string | string[],
   x: number,
   y: number,
@@ -750,11 +566,10 @@ function drawFixedHeightSection(
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y, 3, height, "F");
 
-  // Section title (bilingual)
+  // Section title
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.subheading);
   doc.setTextColor(...config.colors.sectionHeader);
-  const title = getBilingualText(titleKey, config);
   doc.text(title, x + padding.left + 5, y + padding.top + 8);
 
   // Draw a subtle divider under title
@@ -857,12 +672,11 @@ function drawFixedHeightSection(
       // Add some spacing before exam notes
       currentY += 5;
 
-      // Draw "Exam Notes" title (bilingual)
+      // Draw "Exam Notes" title
       doc.setFont(config.typography.defaultFont, "bold");
       doc.setFontSize(fontSize + 1);
       doc.setTextColor(...config.colors.primary);
-      const examNotesTitle = getBilingualText("examNotes", config);
-      doc.text(examNotesTitle + ":", x + padding.left, currentY);
+      doc.text("Exam Notes:", x + padding.left, currentY);
       currentY += lineHeight + 2;
 
       // Draw exam notes content
@@ -913,12 +727,9 @@ function drawFixedHeightSection(
         // Draw exam label and value
         doc.setFont(config.typography.defaultFont, "bold");
         doc.setTextColor(...config.colors.primary);
-        const examLabel =
-          getBilingualText(exam.label as keyof typeof bilingualTexts, config) ||
-          exam.label;
-        doc.text(`${examLabel}:`, x + padding.left, currentY);
+        doc.text(`${exam.label}:`, x + padding.left, currentY);
 
-        const labelWidth = doc.getTextWidth(`${examLabel}: `);
+        const labelWidth = doc.getTextWidth(`${exam.label}: `);
         doc.setFont(config.typography.defaultFont, "normal");
         doc.setTextColor(...config.colors.textDark);
 
@@ -989,11 +800,10 @@ function drawFixedHeightSection(
       currentY += lineHeight;
     }
   } else {
-    // Empty content (bilingual)
+    // Empty content
     doc.setFont(config.typography.defaultFont, "italic");
     doc.setTextColor(150, 150, 150);
-    const notSpecifiedText = getBilingualText("notSpecified", config);
-    doc.text(notSpecifiedText, x + padding.left, contentY);
+    doc.text("Not specified", x + padding.left, contentY);
   }
 }
 
@@ -1006,20 +816,20 @@ function collectSystemExaminations(
   const systemExaminations: Array<{ label: string; value: string }> = [];
 
   const examinationFields = [
-    { key: "cnsExamination", label: "cnsExamination" },
-    { key: "cardiovascularExamination", label: "cardiovascularExamination" },
-    { key: "respiratoryExamination", label: "respiratoryExamination" },
+    { key: "cnsExamination", label: "CNS Examination" },
+    { key: "cardiovascularExamination", label: "Cardiovascular Examination" },
+    { key: "respiratoryExamination", label: "Respiratory Examination" },
     {
       key: "gastrointestinalExamination",
-      label: "gastrointestinalExamination",
+      label: "Gastrointestinal Examination",
     },
-    { key: "musculoskeletalExamination", label: "musculoskeletalExamination" },
-    { key: "genitourinaryExamination", label: "genitourinaryExamination" },
-    { key: "dermatologicalExamination", label: "dermatologicalExamination" },
-    { key: "entExamination", label: "entExamination" },
+    { key: "musculoskeletalExamination", label: "Musculoskeletal Examination" },
+    { key: "genitourinaryExamination", label: "Genitourinary Examination" },
+    { key: "dermatologicalExamination", label: "Dermatological Examination" },
+    { key: "entExamination", label: "ENT Examination" },
     {
       key: "ophthalmologicalExamination",
-      label: "ophthalmologicalExamination",
+      label: "Ophthalmological Examination",
     },
   ];
 
@@ -1044,17 +854,9 @@ function calculateLeftColumnLayout(
   config: PDFConfig
 ): {
   totalHeight: number;
-  sections: Array<{
-    title: keyof typeof bilingualTexts;
-    content: any;
-    height: number;
-  }>;
+  sections: Array<{ title: string; content: any; height: number }>;
 } {
-  const sections: Array<{
-    title: keyof typeof bilingualTexts;
-    content: any;
-    height: number;
-  }> = [];
+  const sections: Array<{ title: string; content: any; height: number }> = [];
   let totalHeight = 0;
 
   // Add mandatory sections with their fixed heights
@@ -1063,7 +865,7 @@ function calculateLeftColumnLayout(
     config.clinicalHistory.sections.chiefComplaint
   ) {
     sections.push({
-      title: "chiefComplaint",
+      title: "Chief Complaint",
       content: prescription.chiefComplaint,
       height: config.layout.leftSectionHeights.chiefComplaint,
     });
@@ -1077,7 +879,7 @@ function calculateLeftColumnLayout(
     config.clinicalHistory.sections.medicalHistory
   ) {
     sections.push({
-      title: "historyOfChiefComplain",
+      title: "History of the Chief Complain",
       content: prescription.pastMedicalHistory,
       height: config.layout.leftSectionHeights.medicalHistory,
     });
@@ -1091,7 +893,7 @@ function calculateLeftColumnLayout(
     config.clinicalHistory.sections.pastMedicalHistory
   ) {
     sections.push({
-      title: "pastMedicalHistory",
+      title: "Past Medical History",
       content: prescription.pastMedicalHistory,
       height: config.layout.leftSectionHeights.pastMedicalHistory,
     });
@@ -1104,7 +906,7 @@ function calculateLeftColumnLayout(
   const systemExams = collectSystemExaminations(prescription);
   if (systemExams.length > 0) {
     sections.push({
-      title: "systemExaminations",
+      title: "System Examinations",
       content: { systemExaminations: systemExams },
       height: 120, // Fixed height for system examinations
     });
@@ -1129,7 +931,7 @@ function calculateLeftColumnLayout(
     }
 
     sections.push({
-      title: "labExams",
+      title: "Lab Exams",
       content: labExamContent,
       height: config.layout.leftSectionHeights.labExams,
     });
@@ -1137,12 +939,17 @@ function calculateLeftColumnLayout(
       config.layout.leftSectionHeights.labExams + config.layout.sectionSpacing;
   }
 
+  // Note: Diagnosis section would be added here if prescription data included diagnosis
+  // For now, it's available in config but not populated from prescription data
+
+  // Note: Diagnosis/Allergies section moved to right column
+
   if (
     prescription.socialHistory &&
     config.clinicalHistory.sections.socialHistory
   ) {
     sections.push({
-      title: "socialHistory",
+      title: "Social History",
       content: prescription.socialHistory,
       height: config.layout.leftSectionHeights.socialHistory,
     });
@@ -1166,7 +973,7 @@ function calculateLeftColumnLayout(
 
 function formatVitalValue(value?: string): string {
   if (!value || value.trim() === "") {
-    return getBilingualText("na", defaultPDFConfig);
+    return "N/A";
   }
   return value.trim();
 }
@@ -1403,44 +1210,40 @@ function createPatientInfoRows(
 
   const fieldMap: Record<string, { label: string; value: string }> = {
     name: {
-      label: getBilingualText("name", config),
-      value: prescription.patientName || getBilingualText("na", config),
+      label: "Name",
+      value: prescription.patientName || "N/A",
     },
     age: {
-      label: getBilingualText("age", config),
+      label: "Age",
       value: prescription.patientAge
-        ? `${prescription.patientAge} ${getBilingualText("years", config)}`
-        : getBilingualText("na", config),
+        ? `${prescription.patientAge} years`
+        : "N/A",
     },
     gender: {
-      label: getBilingualText("gender", config),
-      value: prescription.patientGender || getBilingualText("na", config),
+      label: "Sex",
+      value: prescription.patientGender || "N/A",
     },
     date: {
-      label: getBilingualText("date", config),
+      label: "Date",
       value: prescription.date
         ? format(new Date(prescription.date), "yyyy/MM/dd")
         : format(new Date(), "yyyy/MM/dd"),
     },
     weight: {
-      label: getBilingualText("weight", config),
-      value: prescription.weight
-        ? `${prescription.weight} ${getBilingualText("kg", config)}`
-        : getBilingualText("na", config),
+      label: "Weight",
+      value: prescription.weight ? `${prescription.weight} kg` : "N/A",
     },
     height: {
-      label: getBilingualText("height", config),
-      value: prescription.height
-        ? `${prescription.height} ${getBilingualText("cm", config)}`
-        : getBilingualText("na", config),
+      label: "Height",
+      value: prescription.height ? `${prescription.height} cm` : "N/A",
     },
     bmi: {
-      label: getBilingualText("bmi", config),
-      value: prescription.bmi || getBilingualText("na", config),
+      label: "BMI",
+      value: prescription.bmi || "N/A",
     },
     address: {
-      label: getBilingualText("address", config),
-      value: prescription.patientAddress || getBilingualText("na", config),
+      label: "Address",
+      value: prescription.patientAddress || "N/A",
     },
   };
 
@@ -1464,48 +1267,37 @@ function addCompactVitalSigns(
   prescription: VoicePrescription,
   config: PDFConfig
 ): number {
-  // Section header (bilingual)
+  // Section header
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y, 4, 16, "F");
 
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  const vitalSignsTitle = getBilingualText("vitalSigns", config);
-  doc.text(vitalSignsTitle, x + 10, y + 11);
+  doc.text("VITAL SIGNS", x + 10, y + 11);
 
   y += 22;
 
   const vitalSigns = [
     {
       key: "pulse",
-      label: getBilingualText("pulseRate", config),
+      label: "PR",
       value: prescription.pulseRate,
-      unit: getVitalSignUnit("pulse", config),
+      unit: "bpm",
     },
-    {
-      key: "bp",
-      label: getBilingualText("bloodPressure", config),
-      value: prescription.bloodPressure,
-      unit: getVitalSignUnit("bp", config),
-    },
-    {
-      key: "temp",
-      label: getBilingualText("temperature", config),
-      value: prescription.temperature,
-      unit: getVitalSignUnit("temp", config),
-    },
+    { key: "bp", label: "BP", value: prescription.bloodPressure, unit: "bp" },
+    { key: "temp", label: "Temp", value: prescription.temperature, unit: "°C" },
     {
       key: "respiratory",
-      label: getBilingualText("respiratoryRate", config),
+      label: "RR",
       value: prescription.respiratoryRate,
-      unit: getVitalSignUnit("respiratory", config),
+      unit: "/min",
     },
     {
       key: "oxygen",
-      label: getBilingualText("oxygenSaturation", config),
+      label: "SPO2",
       value: prescription.oxygenSaturation,
-      unit: getVitalSignUnit("oxygen", config),
+      unit: "%",
     },
   ];
 
@@ -1517,8 +1309,7 @@ function addCompactVitalSigns(
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.textDark);
-    const noVitalSignsText = getBilingualText("noVitalSigns", config);
-    doc.text(noVitalSignsText, x + 10, y);
+    doc.text("No vital signs recorded", x + 10, y);
     return y + 15;
   }
 
@@ -1593,40 +1384,37 @@ function addCompactMedicationsTable(
   });
 
   if (uniqueMedications.length === 0) {
-    // Section header (bilingual)
+    // Section header
     doc.setFillColor(...config.colors.accent);
     doc.rect(x, y, 4, 16, "F");
 
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.heading);
     doc.setTextColor(...config.colors.primary);
-    const prescriptionsTitle = getBilingualText("prescriptions", config);
-    doc.text(prescriptionsTitle, x + 10, y + 11);
+    doc.text("PRESCRIPTIONS", x + 10, y + 11);
 
     y += 22;
 
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.textDark);
-    const noMedicationsText = getBilingualText("noMedications", config);
-    doc.text(noMedicationsText, x + 10, y);
+    doc.text("No medications prescribed", x + 10, y);
 
     return y + 15;
   }
 
-  // Section header (bilingual)
+  // Section header
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y, 4, 16, "F");
 
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  const prescriptionsTitle = getBilingualText("prescriptions", config);
-  doc.text(prescriptionsTitle, x + 10, y + 11);
+  doc.text("PRESCRIPTIONS", x + 10, y + 11);
 
   y += 22;
 
-  const headers = getBilingualTableHeaders(config);
+  const headers = config.medications.table.headers;
   const columnWidths = config.medications.table.columnWidths;
   const startX = x + 5;
   const totalWidth = columnWidths.reduce((a, b) => a + b, 0);
@@ -1695,7 +1483,7 @@ function addCompactMedicationsTable(
     // Row data
     const rowData = [
       config.medications.table.showRowNumbers ? `${i + 1}.` : "",
-      med.medicine || getBilingualText("na", config),
+      med.medicine || "N/A",
       getMedicationField(med, "dosage", config),
       getMedicationField(med, "frequency", config),
       getMedicationField(med, "duration", config),
@@ -1794,15 +1582,14 @@ function addDiagnosisSection(
     return y; // No valid allergies found
   }
 
-  // Section header (bilingual)
+  // Section header
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y, 4, 16, "F");
 
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  const diagnosisTitle = getBilingualText("diagnosis", config);
-  doc.text(diagnosisTitle, x + 10, y + 11);
+  doc.text("DIAGNOSIS", x + 10, y + 11);
 
   y += 22;
 
@@ -1868,17 +1655,13 @@ function addCompactSignature(
     { align: "center" }
   );
 
-  // Title (bilingual)
+  // Title
   if (config.signature.includeTitle) {
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.textDark);
-    const medicalPractitionerTitle = getBilingualText(
-      "medicalPractitioner",
-      config
-    );
     doc.text(
-      medicalPractitionerTitle,
+      "Medical Practitioner",
       rightSectionX + config.signature.lineLength / 2,
       signatureY + 25,
       { align: "center" }
@@ -1900,10 +1683,9 @@ function addFooter(
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.primary);
 
-    // Draw "Follow Up:" label (bilingual)
+    // Draw "Follow Up:" label
     doc.setFont(config.typography.defaultFont, "bold");
-    const followUpTitle = getBilingualText("followUp", config);
-    doc.text(followUpTitle, pageWidth / 2, footerY - 27, { align: "center" });
+    doc.text("Follow Up:", pageWidth / 2, footerY - 27, { align: "center" });
 
     // Draw follow up content
     doc.setFont(config.typography.defaultFont, "normal");
@@ -1920,11 +1702,10 @@ function addFooter(
         config.typography.lineHeights.normal;
     }
   } else if (config.footer.showDigitalNote) {
-    // Fallback to digital note if no follow up content (bilingual)
+    // Fallback to digital note if no follow up content
     doc.setFontSize(config.typography.fontSizes.micro);
     doc.setTextColor(...config.colors.textDark);
-    const digitalNote = getBilingualText("digitalNote", config);
-    doc.text(digitalNote, pageWidth / 2, footerY + 10, {
+    doc.text("Digitally generated prescription", pageWidth / 2, footerY + 10, {
       align: "center",
     });
   }
