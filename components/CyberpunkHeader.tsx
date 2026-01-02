@@ -490,38 +490,31 @@ export function CyberpunkHeader({
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-cyber-primary to-cyber-secondary opacity-0 group-hover:opacity-20 transition-opacity" />
-                    <Cpu
-                      className="text-cyber-primary group-hover:text-cyber-secondary transition-colors"
+                    <img
+                      src="/logo.png"
+                      alt="Logo"
+                      className="object-contain transition-colors group-hover:brightness-110"
                       style={{
-                        height: `${1.1 - scrollProgress * 0.25}rem`,
-                        width: `${1.1 - scrollProgress * 0.25}rem`,
+                        height: `${3.1 - scrollProgress * 0.25}rem`,
+                        width: `${3.1 - scrollProgress * 0.25}rem`,
+                        filter: "drop-shadow(0 0 4px rgba(0, 255, 255, 0.3))",
                       }}
                     />
                   </Button>
                 </Link>
                 <div className="flex flex-col">
-                  <h2
-                    className="font-bold font-mono bg-gradient-to-r from-cyber-primary to-cyber-secondary bg-clip-text text-transparent transition-all duration-300"
-                    style={{
-                      fontSize: `${1 - scrollProgress * 0.2}rem`,
-                      lineHeight: `${1 - scrollProgress * 0.2}rem`,
-                      textShadow: `0 0 8px ${colors.primaryGlow}40`,
-                    }}
-                  >
-                    NEURO-MED v2.5
-                  </h2>
                   <div className="flex items-center gap-1 mt-0.5">
                     <span
-                      className="text-[9px] font-mono text-cyber-muted transition-all duration-300"
+                      className="text-[24px] font-mono text-cyber-muted transition-all duration-300"
                       style={{
                         fontSize: `${0.65 - scrollProgress * 0.1}rem`,
                       }}
                     >
-                      MED INTERFACE
+                      HOSPITAL
                     </span>
                     <div className="w-1 h-1 rounded-full bg-cyber-primary animate-pulse" />
                     <span className="text-[9px] font-mono text-cyber-secondary">
-                      ONLINE
+                      ATLAS
                     </span>
                   </div>
                 </div>

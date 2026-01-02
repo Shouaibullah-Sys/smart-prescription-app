@@ -2387,9 +2387,14 @@ function addFooter(
   if (config.footer.showDigitalNote) {
     doc.setFontSize(config.typography.fontSizes.micro);
     doc.setTextColor(...config.colors.textDark);
-    doc.text("در ختم دوا دوباره مراجعه گردد", pageWidth / 2, footerY - 40, {
-      align: "center",
-    });
+    doc.text(
+      "در ختم دوا دوباره مراجعه گردد مهرباني وکړئ د درملنې په پای کې بیرته راشئ.",
+      pageWidth / 2,
+      footerY - 40,
+      {
+        align: "center",
+      }
+    );
   }
 
   // Optionally, you can still show page numbers here
