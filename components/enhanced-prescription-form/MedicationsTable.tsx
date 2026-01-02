@@ -72,7 +72,10 @@ export function MedicationsTable({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row hover:bg-muted/20">
+    <div
+      id="medications-table"
+      className="flex flex-col sm:flex-row hover:bg-muted/20"
+    >
       <div className="w-full sm:w-1/4 p-3 sm:p-4 border-b sm:border-b-0 sm:border-r dark:border-border/30 bg-muted/10">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">

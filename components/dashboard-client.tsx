@@ -4,13 +4,14 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser, useClerk } from "@clerk/nextjs";
-import SmartTextForm from "./SmartTextForm";
+
 import PresetsTab from "./presets-tab";
 import ErrorAlert from "./ErrorAlert";
 import { EnhancedPrescriptionForm } from "./enhanced-prescription-form/enhanced-prescription-form";
 import { PrescriptionDetails } from "./prescription-details";
 import { PrescriptionAmount } from "./prescription-amount";
 import { Prescription } from "@/types/prescription";
+import { CyberpunkHeader } from "./CyberpunkHeader";
 import {
   Card,
   CardContent,
@@ -216,16 +217,88 @@ async function deletePrescription(
   }
 }
 
+// Helper function to create empty prescription
+function createEmptyPrescription(userId?: string): Prescription {
+  return {
+    id: Date.now().toString(),
+    userId: userId || "",
+    patientName: "",
+    patientAge: "",
+    patientGender: "",
+    patientPhone: "",
+    patientAddress: "",
+    medicines: [
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        medicine: "",
+        dosage: "",
+        frequency: "",
+        duration: "",
+        form: "tablet",
+        route: "oral",
+        timing: "after_meal",
+        withFood: false,
+        instructions: "",
+        notes: "",
+        prescriptionId: "",
+      },
+    ],
+    chiefComplaint: "",
+    pulseRate: "",
+    heartRate: "",
+    bloodPressure: "",
+    temperature: "",
+    respiratoryRate: "",
+    oxygenSaturation: "",
+    weight: "",
+    height: "",
+    allergies: "",
+    currentMedications: "",
+    pastMedicalHistory: "",
+    familyHistory: "",
+    socialHistory: "",
+    physicalExam: "",
+    medicalExams: [],
+    examNotes: "",
+    cnsExamination: "",
+    cardiovascularExamination: "",
+    respiratoryExamination: "",
+    gastrointestinalExamination: "",
+    musculoskeletalExamination: "",
+    genitourinaryExamination: "",
+    dermatologicalExamination: "",
+    entExamination: "",
+    ophthalmologicalExamination: "",
+    bmi: "",
+    instructions: "",
+    followUp: "",
+    restrictions: "",
+    doctorName: "Dr. Ahmad Farid",
+    doctorLicenseNumber: "",
+    clinicName: "Specialty Clinic",
+    clinicAddress: "",
+    doctorFree: "",
+    prescriptionDate: new Date(),
+    prescriptionNumber: "",
+    source: "manual",
+    status: "active",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
 export default function DashboardClient({
   initialPrescriptions,
   databaseStatus = "unknown",
 }: DashboardClientProps) {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [prescription, setPrescription] = useState<Prescription | null>(null);
+  const [prescription, setPrescription] = useState<Prescription>(() =>
+    createEmptyPrescription(user?.id)
+  );
   const [selectedPrescription, setSelectedPrescription] =
     useState<Prescription | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "create" | "presets" | "history" | "amounts"
@@ -254,7 +327,7 @@ export default function DashboardClient({
     mutationFn: createPrescription,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
-      setPrescription(null);
+      setPrescription(createEmptyPrescription());
       setActiveTab("history");
       setError(null);
     },
@@ -290,17 +363,6 @@ export default function DashboardClient({
     );
   }).length;
 
-  const handlePrescriptionGenerated = (result: Prescription) => {
-    setPrescription(result);
-    setError(null);
-    setActiveTab("create");
-  };
-
-  const handleError = (errorMessage: string) => {
-    setError(errorMessage);
-    setPrescription(null);
-  };
-
   const handleQuickPreset = (presetData: Prescription) => {
     setPrescription(presetData);
     setError(null);
@@ -312,7 +374,7 @@ export default function DashboardClient({
   };
 
   const handleCancelEdit = () => {
-    setPrescription(null);
+    setPrescription(createEmptyPrescription());
   };
 
   const handleViewDetails = (prescription: Prescription) => {
@@ -331,6 +393,14 @@ export default function DashboardClient({
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleRoyalHeaderLogout = async () => {
+    await signOut();
+  };
+
+  const handleError = (error: string) => {
+    setError(error);
   };
 
   const isSaving = createMutation.isPending;
@@ -358,288 +428,36 @@ export default function DashboardClient({
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        {/* Header */}
-        <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md supports-backdrop-filter:bg-card/60">
-          <div className="container flex h-16 items-center justify-between px-4">
-            {/* Mobile Menu Button */}
-            <div className="flex items-center gap-2 lg:hidden z-50">
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-                  <div className="flex flex-col h-full px-3">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="p-2 bg-primary/10 rounded-lg"></div>
-                      <div>
-                        <h2 className="text-lg font-bold">
-                          Prescription System
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                          Smart Platform
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 mb-8">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
-                        <Avatar className="h-10 w-10 border-2 border-primary/20">
-                          <AvatarImage src={user.imageUrl} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {getInitials(user.fullName || "کاربر")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {user.fullName || "کاربر سیستم"}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate w-42">
-                            {user.primaryEmailAddress?.emailAddress}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Prescriptions today
-                          </span>
-                          <span className="font-medium">
-                            {todayPrescriptions}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Prescriptions this month
-                          </span>
-                          <span className="font-medium">
-                            {monthlyPrescriptions}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      <nav className="space-y-2">
-                        <Button
-                          variant={activeTab === "create" ? "default" : "ghost"}
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setActiveTab("create");
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <Plus className="h-4 w-4 ml-2" />
-                          Create new prescription
-                        </Button>
-                        <Button
-                          variant={
-                            activeTab === "presets" ? "default" : "ghost"
-                          }
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setActiveTab("presets");
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <FileText className="h-4 w-4 ml-2" />
-                          Medical templates
-                        </Button>
-                        <Button
-                          variant={
-                            activeTab === "history" ? "default" : "ghost"
-                          }
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setActiveTab("history");
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <History className="h-4 w-4 ml-2" />
-                          تاریخچه نسخه‌ها
-                        </Button>
-                        <Button
-                          variant={
-                            activeTab === "amounts" ? "default" : "ghost"
-                          }
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setActiveTab("amounts");
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <DollarSign className="h-4 w-4 ml-2" />
-                          Visit amounts
-                        </Button>
-                      </nav>
-                    </div>
-
-                    <div className="pt-6 border-t">
-                      <div className="space-y-3">
-                        <ThemeToggle />
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setMobileMenuOpen(false);
-                            handleLogout();
-                          }}
-                        >
-                          <LogOut className="h-4 w-4 ml-2" />
-                          Logout
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-
-            {/* Logo */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
-                  <Stethoscope className="h-6 w-6 text-primary" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Medical Prescription System
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Smart platform for managing medical prescriptions
-                  </p>
-                </div>
-                <div className="sm:hidden">
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Prescription
-                  </h1>
-                  <p className="text-xs text-muted-foreground">سیستم پزشکی</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Navigation and Stats */}
-            <div className="hidden lg:flex items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
-                  <Activity className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    {todayPrescriptions} نسخه امروز
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {monthlyPrescriptions} این ماه
-                  </span>
-                </div>
-              </div>
-
-              <Separator orientation="vertical" className="h-8" />
-
-              {/* User Actions */}
-              <div className="flex items-center gap-3">
-                <ThemeToggle />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <HelpCircle className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>راهنما</TooltipContent>
-                </Tooltip>
-                <div className="flex items-center gap-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="relative h-8 w-8 rounded-full p-0"
-                      >
-                        <Avatar className="h-8 w-8 border-2 border-primary/20">
-                          <AvatarImage src={user.imageUrl} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {getInitials(user.fullName || "کاربر")}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {user.fullName || "کاربر سیستم"}
-                          </p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.primaryEmailAddress?.emailAddress}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <User className="h-4 w-4 ml-2" />
-                        پروفایل
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Settings className="h-4 w-4 ml-2" />
-                        تنظیمات
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <HelpCircle className="h-4 w-4 ml-2" />
-                        راهنما
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={handleLogout}
-                        className="text-destructive"
-                      >
-                        <LogOut className="h-4 w-4 ml-2" />
-                        خروج
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <div className="hidden md:block">
-                    <p className="text-sm font-medium">
-                      {user.fullName?.split(" ")[0] || "کاربر"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">پزشک</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Mobile User Actions */}
-            <div className="flex items-center gap-2 lg:hidden">
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+        {/* Royal Header */}
+        <CyberpunkHeader
+          todayPrescriptions={todayPrescriptions}
+          monthlyPrescriptions={monthlyPrescriptions}
+          onLogout={handleRoyalHeaderLogout}
+        />
 
         {/* Database Status Banner */}
         {databaseStatus !== "connected" && (
           <div
             className={`
-            ${
-              databaseStatus === "error"
-                ? "bg-destructive/10 border-destructive/20 text-destructive"
-                : "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200"
-            } border-b
-          `}
+              ${
+                databaseStatus === "error"
+                  ? "bg-destructive/10 border-destructive/20 text-destructive"
+                  : "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200"
+              } border-b
+            `}
           >
             <div className="container px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
                     className={`
-                    h-2 w-2 rounded-full animate-pulse
-                    ${
-                      databaseStatus === "error"
-                        ? "bg-destructive"
-                        : "bg-yellow-500"
-                    }
-                  `}
+                      h-2 w-2 rounded-full animate-pulse
+                      ${
+                        databaseStatus === "error"
+                          ? "bg-destructive"
+                          : "bg-yellow-500"
+                      }
+                    `}
                   ></div>
                   <span className="text-sm font-medium">
                     {databaseStatus === "disconnected" &&
@@ -672,25 +490,25 @@ export default function DashboardClient({
                   <TabsTrigger
                     value="create"
                     className="
-                      relative 
-                      data-[state=active]:border-b-2 
-                      data-[state=active]:border-primary 
-                      data-[state=active]:bg-primary/5
-                      rounded-none 
-                      px-3 sm:px-4 md:px-6 
-                      py-3 sm:py-4
-                      h-auto 
-                      text-xs sm:text-sm
-                      flex-shrink-0
-                      flex items-center gap-1 sm:gap-2
-                      text-muted-foreground 
-                      data-[state=active]:text-primary
-                      dark:text-gray-300
-                      dark:data-[state=active]:text-primary
-                      dark:data-[state=active]:bg-primary/10
-                      transition-colors duration-200
-                      hover:text-foreground dark:hover:text-white
-                    "
+                        relative 
+                        data-[state=active]:border-b-2 
+                        data-[state=active]:border-primary 
+                        data-[state=active]:bg-primary/5
+                        rounded-none 
+                        px-3 sm:px-4 md:px-6 
+                        py-3 sm:py-4
+                        h-auto 
+                        text-xs sm:text-sm
+                        flex-shrink-0
+                        flex items-center gap-1 sm:gap-2
+                        text-muted-foreground 
+                        data-[state=active]:text-primary
+                        dark:text-gray-300
+                        dark:data-[state=active]:text-primary
+                        dark:data-[state=active]:bg-primary/10
+                        transition-colors duration-200
+                        hover:text-foreground dark:hover:text-white
+                      "
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
                     <div className="text-right">
@@ -698,32 +516,32 @@ export default function DashboardClient({
                         ایجاد نسخه
                       </div>
                       <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
-                        نسخه هوشمند
+                        فرم جامع
                       </div>
                     </div>
                   </TabsTrigger>
                   <TabsTrigger
                     value="presets"
                     className="
-                      relative 
-                      data-[state=active]:border-b-2 
-                      data-[state=active]:border-primary 
-                      data-[state=active]:bg-primary/5
-                      rounded-none 
-                      px-3 sm:px-4 md:px-6 
-                      py-3 sm:py-4
-                      h-auto 
-                      text-xs sm:text-sm
-                      flex-shrink-0
-                      flex items-center gap-1 sm:gap-2
-                      text-muted-foreground 
-                      data-[state=active]:text-primary
-                      dark:text-gray-300
-                      dark:data-[state=active]:text-primary
-                      dark:data-[state=active]:bg-primary/10
-                      transition-colors duration-200
-                      hover:text-foreground dark:hover:text-white
-                    "
+                        relative 
+                        data-[state=active]:border-b-2 
+                        data-[state=active]:border-primary 
+                        data-[state=active]:bg-primary/5
+                        rounded-none 
+                        px-3 sm:px-4 md:px-6 
+                        py-3 sm:py-4
+                        h-auto 
+                        text-xs sm:text-sm
+                        flex-shrink-0
+                        flex items-center gap-1 sm:gap-2
+                        text-muted-foreground 
+                        data-[state=active]:text-primary
+                        dark:text-gray-300
+                        dark:data-[state=active]:text-primary
+                        dark:data-[state=active]:bg-primary/10
+                        transition-colors duration-200
+                        hover:text-foreground dark:hover:text-white
+                      "
                   >
                     <FileText className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
                     <div className="text-right">
@@ -738,25 +556,25 @@ export default function DashboardClient({
                   <TabsTrigger
                     value="history"
                     className="
-                      relative 
-                      data-[state=active]:text-primary 
-                      data-[state=active]:border-b-2 
-                      data-[state=active]:border-primary 
-                      data-[state=active]:bg-primary/5
-                      rounded-none 
-                      px-3 sm:px-4 md:px-6 
-                      py-3 sm:py-4
-                      h-auto 
-                      text-xs sm:text-sm
-                      flex-shrink-0
-                      flex items-center gap-1 sm:gap-2
-                      text-muted-foreground
-                      dark:text-gray-300
-                      dark:data-[state=active]:text-primary
-                      dark:data-[state=active]:bg-primary/10
-                      transition-colors duration-200
-                      hover:text-foreground dark:hover:text-white
-                    "
+                        relative 
+                        data-[state=active]:text-primary 
+                        data-[state=active]:border-b-2 
+                        data-[state=active]:border-primary 
+                        data-[state=active]:bg-primary/5
+                        rounded-none 
+                        px-3 sm:px-4 md:px-6 
+                        py-3 sm:py-4
+                        h-auto 
+                        text-xs sm:text-sm
+                        flex-shrink-0
+                        flex items-center gap-1 sm:gap-2
+                        text-muted-foreground
+                        dark:text-gray-300
+                        dark:data-[state=active]:text-primary
+                        dark:data-[state=active]:bg-primary/10
+                        transition-colors duration-200
+                        hover:text-foreground dark:hover:text-white
+                      "
                   >
                     <History className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
                     <div className="text-right">
@@ -771,25 +589,25 @@ export default function DashboardClient({
                   <TabsTrigger
                     value="amounts"
                     className="
-                      relative 
-                      data-[state=active]:text-primary 
-                      data-[state=active]:border-b-2 
-                      data-[state=active]:border-primary 
-                      data-[state=active]:bg-primary/5
-                      rounded-none 
-                      px-3 sm:px-4 md:px-6 
-                      py-3 sm:py-4
-                      h-auto 
-                      text-xs sm:text-sm
-                      flex-shrink-0
-                      flex items-center gap-1 sm:gap-2
-                      text-muted-foreground
-                      dark:text-gray-300
-                      dark:data-[state=active]:text-primary
-                      dark:data-[state=active]:bg-primary/10
-                      transition-colors duration-200
-                      hover:text-foreground dark:hover:text-white
-                    "
+                        relative 
+                        data-[state=active]:text-primary 
+                        data-[state=active]:border-b-2 
+                        data-[state=active]:border-primary 
+                        data-[state=active]:bg-primary/5
+                        rounded-none 
+                        px-3 sm:px-4 md:px-6 
+                        py-3 sm:py-4
+                        h-auto 
+                        text-xs sm:text-sm
+                        flex-shrink-0
+                        flex items-center gap-1 sm:gap-2
+                        text-muted-foreground
+                        dark:text-gray-300
+                        dark:data-[state=active]:text-primary
+                        dark:data-[state=active]:bg-primary/10
+                        transition-colors duration-200
+                        hover:text-foreground dark:hover:text-white
+                      "
                   >
                     <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
                     <div className="text-right">
@@ -803,56 +621,12 @@ export default function DashboardClient({
 
                 <TabsContent value="create" className="p-4 sm:p-6">
                   <div className="space-y-6">
-                    {!prescription ? (
-                      <Card className="border-primary/20">
-                        <CardHeader>
-                          <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                              <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                            </div>
-                            <div>
-                              <span>نسخه‌نویس هوشمند</span>
-                              <Badge
-                                variant="outline"
-                                className="mr-2 bg-primary/5 text-primary border-primary/20"
-                              >
-                                قدرت گرفته از AI
-                              </Badge>
-                            </div>
-                          </CardTitle>
-                          <CardDescription className="text-sm sm:text-base">
-                            علائم بیمار یا متن نسخه را وارد کنید تا سیستم به
-                            صورت هوشمند نسخه کامل را تولید کند. از هوش مصنوعی
-                            برای تشخیص دقیق‌تر استفاده می‌شود.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <SmartTextForm
-                            onPrescriptionGenerated={
-                              handlePrescriptionGenerated
-                            }
-                            onLoadingChange={setLoading}
-                            onError={handleError}
-                            loading={loading}
-                          />
-                        </CardContent>
-                        <CardFooter className="border-t pt-6">
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <Shield className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />
-                            <span>
-                              تمامی اطلاعات بیماران به صورت امن ذخیره می‌شود
-                            </span>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    ) : (
-                      <EnhancedPrescriptionForm
-                        prescription={prescription}
-                        onSave={handleSavePrescription}
-                        onCancel={handleCancelEdit}
-                        isSaving={isSaving}
-                      />
-                    )}
+                    <EnhancedPrescriptionForm
+                      prescription={prescription}
+                      onSave={handleSavePrescription}
+                      onCancel={handleCancelEdit}
+                      isSaving={isSaving}
+                    />
 
                     {error && (
                       <ErrorAlert
@@ -972,65 +746,7 @@ export default function DashboardClient({
               </Tabs>
             </CardContent>
           </Card>
-
-          {/* Recent Activity */}
-          {prescriptions.length > 0 && (
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  فعالیت‌های اخیر
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  آخرین نسخه‌های ثبت شده
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {prescriptions.slice(0, 3).map((prescription) => (
-                    <div
-                      key={prescription.id}
-                      className="flex items-center justify-between p-3 sm:p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
-                      onClick={() => handleViewDetails(prescription)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {prescription.patientName || "بدون نام"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs sm:text-sm font-medium">
-                          {new Date(prescription.createdAt).toLocaleDateString(
-                            "fa-IR"
-                          )}
-                        </p>
-                        <Badge variant="outline" className="mt-1 text-xs">
-                          {prescription.medicines?.length || 0} دارو
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setActiveTab("history")}
-                  size="sm"
-                >
-                  مشاهده تمامی نسخه‌ها
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
         </div>
-
         {/* Prescription Details Dialog */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border p-4 sm:p-6">

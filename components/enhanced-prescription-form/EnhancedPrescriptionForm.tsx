@@ -1,4 +1,5 @@
-// Enhanced Prescription Form - Main Component
+// components/enhanced-prescription-form/EnhancedPrescriptionForm.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,8 +15,8 @@ import { ClipboardCheck } from "lucide-react";
 import { Prescription, FormMedicine } from "@/types/prescription";
 
 // Import all separated components
-import { HeaderComponent } from "./Header";
 import { PatientInformation } from "./PatientInformation";
+import { ChiefComplaint } from "./ChiefComplaint"; // NEW IMPORT
 import { MedicalHistory } from "./MedicalHistory";
 import { VitalSigns } from "./VitalSigns";
 import { SystemExaminations } from "./SystemExaminations";
@@ -24,6 +25,8 @@ import { DoctorInfo } from "./DoctorInfo";
 import { MedicationsTable } from "./MedicationsTable";
 import { Footer } from "./Footer";
 import { SYSTEM_EXAM_OPTIONS } from "./constants";
+import { Diagnosis } from "./Diagnosis";
+import { FollowUp } from "./FollowUp";
 
 interface EnhancedPrescriptionFormProps {
   prescription: Prescription;
@@ -38,8 +41,17 @@ export function EnhancedPrescriptionForm({
   onCancel,
   isSaving = false,
 }: EnhancedPrescriptionFormProps) {
+  console.log(
+    "🔄 EnhancedPrescriptionForm render - prescription ID:",
+    prescription.id || "no-id"
+  );
+
   const [editablePrescription, setEditablePrescription] =
     useState<Prescription>(() => {
+      console.log(
+        "🏁 Initializing prescription - allergies:",
+        prescription.allergies
+      );
       return initializePrescription(prescription);
     });
 
@@ -72,8 +84,10 @@ export function EnhancedPrescriptionForm({
 
   useEffect(() => {
     console.log(
-      "useEffect triggered - prescription prop changed:",
-      prescription.allergies
+      "🔄 useEffect triggered - prescription prop changed. Allergies:",
+      prescription.allergies,
+      "Prescription ID:",
+      prescription.id || "no-id"
     );
     setEditablePrescription(initializePrescription(prescription));
     setSelectedExams(new Set(prescription.medicalExams || []));
@@ -194,20 +208,24 @@ export function EnhancedPrescriptionForm({
   }
 
   const updateField = (field: keyof Prescription, value: any) => {
-    console.log("updateField called:", {
+    console.log("📝 updateField called:", {
       field,
       value,
       currentAllergies: editablePrescription.allergies,
+      prescriptionId: editablePrescription.id || "no-id",
+      timestamp: new Date().toISOString(),
     });
     setEditablePrescription((prev) => {
       const updated = {
         ...prev,
         [field]: value,
       };
-      console.log("Updated prescription:", {
+      console.log("✅ Updated prescription:", {
         field,
         newValue: value,
         allergies: updated.allergies,
+        prescriptionId: updated.id || "no-id",
+        timestamp: new Date().toISOString(),
       });
       return updated;
     });
@@ -378,6 +396,47 @@ export function EnhancedPrescriptionForm({
     }));
   };
 
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  // Toggle quick option selection
+  // Toggle quick option selection
+  const toggleQuickOption = (
+    system: keyof typeof SYSTEM_EXAM_OPTIONS,
+    option: string
+  ) => {
+    setSelectedQuickOptions((prev) => {
+      const current = [...prev[system]];
+      const index = current.indexOf(option);
+
+      if (index > -1) {
+        current.splice(index, 1);
+      } else {
+        current.push(option);
+      }
+
+      // Calculate the new text value
+      const textValue = current.map((opt) => `• ${opt}`).join("\n");
+
+      // Update the prescription field after state is set
+      const updatedOptions = {
+        ...prev,
+        [system]: current,
+      };
+
+      // Use useEffect-like approach - update prescription after quick options are set
+      const timer = setTimeout(() => {
+        updateField(`${system}Examination` as keyof Prescription, textValue);
+      }, 0);
+
+      return updatedOptions;
+    });
+  };
+
   const removeMedicine = (index: number) => {
     if (editablePrescription.medicines.length <= 1) {
       const updatedMeds = [...editablePrescription.medicines];
@@ -393,41 +452,6 @@ export function EnhancedPrescriptionForm({
       ...prev,
       medicines: prev.medicines.filter((_, i) => i !== index),
     }));
-  };
-
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
-  // Toggle quick option selection
-  const toggleQuickOption = (
-    system: keyof typeof SYSTEM_EXAM_OPTIONS,
-    option: string
-  ) => {
-    setSelectedQuickOptions((prev) => {
-      const current = [...prev[system]];
-      const index = current.indexOf(option);
-
-      if (index > -1) {
-        // Remove if exists
-        current.splice(index, 1);
-      } else {
-        // Add if not exists
-        current.push(option);
-      }
-
-      // Update the textarea with selected options
-      const textValue = current.map((opt) => `• ${opt}`).join("\n");
-      updateField(`${system}Examination` as keyof Prescription, textValue);
-
-      return {
-        ...prev,
-        [system]: current,
-      };
-    });
   };
 
   const handleSave = async () => {
@@ -496,14 +520,6 @@ export function EnhancedPrescriptionForm({
   return (
     <TooltipProvider>
       <div className="h-full flex flex-col space-y-6 w-full max-w-full">
-        {/* Header */}
-        <HeaderComponent
-          prescription={editablePrescription}
-          isSaving={isSaving}
-          onSave={handleSave}
-          onCancel={onCancel}
-        />
-
         {/* Main Form Card */}
         <Card className="flex-1 border-border/50 dark:border-border/30 w-full overflow-hidden">
           <CardHeader className="bg-muted/30 border-b dark:border-border/50">
@@ -523,16 +539,25 @@ export function EnhancedPrescriptionForm({
                 prescription={editablePrescription}
                 onUpdateField={updateField}
               />
-              {/* Chief Complaint & Vital Signs */}
-              <VitalSigns
+
+              {/* Chief Complaint - ADDED HERE */}
+              <ChiefComplaint
                 prescription={editablePrescription}
                 onUpdateField={updateField}
               />
+
               {/* Medical History */}
               <MedicalHistory
                 prescription={editablePrescription}
                 onUpdateField={updateField}
               />
+
+              {/* Vital Signs */}
+              <VitalSigns
+                prescription={editablePrescription}
+                onUpdateField={updateField}
+              />
+
               {/* System Examinations */}
               <SystemExaminations
                 prescription={editablePrescription}
@@ -550,6 +575,12 @@ export function EnhancedPrescriptionForm({
                 onSelectedExamsChange={handleSelectedExamsChange}
               />
 
+              {/* Diagnosis */}
+              <Diagnosis
+                prescription={editablePrescription}
+                onUpdateField={updateField}
+              />
+
               {/* Doctor & Clinic Info */}
               <DoctorInfo
                 prescription={editablePrescription}
@@ -563,6 +594,12 @@ export function EnhancedPrescriptionForm({
                 onMedicineInput={handleMedicineInput}
                 onAddMedicine={addMedicine}
                 onRemoveMedicine={removeMedicine}
+              />
+
+              {/* Follow Up */}
+              <FollowUp
+                prescription={editablePrescription}
+                onUpdateField={updateField}
               />
             </div>
           </CardContent>

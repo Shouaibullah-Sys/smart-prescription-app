@@ -4,7 +4,6 @@
 export { EnhancedPrescriptionForm } from "./EnhancedPrescriptionForm";
 
 // Individual component exports (for advanced use cases)
-export { HeaderComponent } from "./Header";
 export { PatientInformation } from "./PatientInformation";
 export { MedicalHistory } from "./MedicalHistory";
 export { VitalSigns } from "./VitalSigns";
@@ -12,6 +11,9 @@ export { SystemExaminations } from "./SystemExaminations";
 export { MedicalTests } from "./MedicalTests";
 export { DoctorInfo } from "./DoctorInfo";
 export { MedicationsTable } from "./MedicationsTable";
+export { FollowUp } from "./FollowUp";
+export { Diagnosis } from "./Diagnosis";
+export { ChiefComplaint } from "./ChiefComplaint";
 export { Footer } from "./Footer";
 
 // Constants and utilities

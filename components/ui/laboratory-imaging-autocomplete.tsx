@@ -1,5 +1,4 @@
-// components/ui/laboratory-imaging-autocomplete.tsx - UPDATED
-
+// components/ui/laboratory-imaging-autocomplete.tsx
 "use client";
 
 import * as React from "react";
@@ -18,7 +17,7 @@ import {
   AutocompleteClear,
 } from "@/components/ui/base-autocomplete";
 import { Badge } from "@/components/ui/badge";
-import { Clock, TestTube, Camera, Zap } from "lucide-react";
+import { Clock, TestTube, Camera, Zap, Plus } from "lucide-react";
 
 export interface TestSuggestion {
   id: string;
@@ -36,6 +35,7 @@ export interface TestSuggestion {
 export interface LaboratoryImagingAutocompleteProps {
   value?: TestSuggestion | null;
   onValueChange?: (value: TestSuggestion | null) => void;
+  onCustomValueAdd?: (value: string) => void; // New prop for custom values
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -43,6 +43,7 @@ export interface LaboratoryImagingAutocompleteProps {
   filterByType?: ("Laboratory" | "Imaging" | "Special Test" | "Procedure")[];
   showPreparationInfo?: boolean;
   showFastingIndicator?: boolean;
+  allowCustomEntries?: boolean; // New prop to enable custom entries
 }
 
 const getTypeIcon = (type: string) => {
@@ -74,6 +75,7 @@ const getTypeColor = (type: string) => {
 export function LaboratoryImagingAutocomplete({
   value,
   onValueChange,
+  onCustomValueAdd,
   placeholder = "Search Laboratory Tests and Imaging...",
   className,
   disabled = false,
@@ -81,11 +83,22 @@ export function LaboratoryImagingAutocomplete({
   filterByType,
   showPreparationInfo = true,
   showFastingIndicator = true,
+  allowCustomEntries = true, // Default to true
 }: LaboratoryImagingAutocompleteProps) {
   const [inputValue, setInputValue] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<TestSuggestion[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("LaboratoryImagingAutocomplete state:", {
+      inputValue,
+      suggestionsCount: suggestions.length,
+      value,
+      isLoading,
+    });
+  }, [inputValue, suggestions, value, isLoading]);
 
   // Debounced search function
   const searchTests = React.useCallback(
@@ -172,27 +185,67 @@ export function LaboratoryImagingAutocomplete({
   }, [suggestions]);
 
   const handleValueChange = (selectedId: string) => {
+    console.log("Autocomplete value changed:", selectedId);
     const selectedSuggestion = suggestions.find((s) => s.id === selectedId);
     if (selectedSuggestion) {
+      console.log("Selected suggestion:", selectedSuggestion);
       onValueChange?.(selectedSuggestion);
       setInputValue(selectedSuggestion.name);
       setSuggestions([]);
+    } else {
+      console.log("No suggestion found for ID:", selectedId);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    console.log("Input changed to:", newValue);
     setInputValue(newValue);
 
     // Clear selection when user types
     if (value && newValue !== value.name) {
+      console.log("Clearing previous selection");
       onValueChange?.(null);
     }
   };
 
   const handleClear = () => {
+    console.log("Clearing input");
     setInputValue("");
     onValueChange?.(null);
+    setSuggestions([]);
+  };
+
+  // Handle Enter key press
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    console.log("Key pressed:", e.key, "Input value:", inputValue);
+
+    if (e.key === "Enter" && inputValue.trim()) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Enter pressed with value:", inputValue);
+
+      // If there are suggestions, select the first one
+      if (suggestions.length > 0) {
+        const firstSuggestion = suggestions[0];
+        console.log("Selecting first suggestion:", firstSuggestion);
+        onValueChange?.(firstSuggestion);
+        setInputValue(firstSuggestion.name);
+        setSuggestions([]);
+      } else if (allowCustomEntries) {
+        // Only add custom value if allowCustomEntries is true
+        console.log("Adding custom value:", inputValue);
+        onCustomValueAdd?.(inputValue.trim());
+        setInputValue("");
+        setSuggestions([]);
+      }
+    }
+  };
+
+  const handleItemClick = (test: TestSuggestion) => {
+    console.log("Item clicked:", test);
+    onValueChange?.(test);
+    setInputValue(test.name);
     setSuggestions([]);
   };
 
@@ -214,8 +267,24 @@ export function LaboratoryImagingAutocomplete({
               placeholder={placeholder}
               value={inputValue}
               onChange={handleInputChange}
+              onKeyDown={(e) => {
+                // Prevent default form submission behavior
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+                handleKeyDown(e);
+              }}
+              onKeyPress={(e) => {
+                // Additional prevention for older browsers
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
               disabled={disabled}
               className="pr-20"
+              data-testid="autocomplete-input"
             />
             <AutocompleteIcon className="absolute right-12 h-4 w-4 text-muted-foreground" />
             {inputValue && (
@@ -239,9 +308,25 @@ export function LaboratoryImagingAutocomplete({
           )}
 
           {!isLoading && !error && suggestions.length === 0 && inputValue && (
-            <AutocompleteEmpty>
-              No tests found for "{inputValue}"
-            </AutocompleteEmpty>
+            <div className="space-y-1">
+              <AutocompleteEmpty>
+                No tests found for "{inputValue}"
+              </AutocompleteEmpty>
+              {allowCustomEntries && (
+                <div className="px-4 py-3 border-t">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Press Enter to add as custom test:
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                    <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium">{inputValue}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Or click a suggestion above to select from existing tests
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {!isLoading && !error && suggestions.length > 0 && (
@@ -253,7 +338,11 @@ export function LaboratoryImagingAutocomplete({
                     {type}
                   </AutocompleteGroupLabel>
                   {tests.map((test) => (
-                    <AutocompleteItem key={test.id} value={test.id}>
+                    <AutocompleteItem
+                      key={test.id}
+                      value={test.id}
+                      onClick={() => handleItemClick(test)}
+                    >
                       <div className="flex flex-col w-full">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">

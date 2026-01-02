@@ -81,8 +81,8 @@ export default function SmartTextForm({
           temperature: "",
           respiratoryRate: "",
           oxygenSaturation: "",
-          allergies: [],
-          currentMedications: [],
+          allergies: "",
+          currentMedications: "",
           pastMedicalHistory: "",
           instructions: result.prescription.recommendations.join("\n"),
           followUp: "Return if no improvement",
@@ -153,7 +153,7 @@ export default function SmartTextForm({
             <div className="p-2 bg-primary/10 rounded-lg">
               <Stethoscope className="h-6 w-6 text-primary" />
             </div>
-            Smart Prescription Writer
+            AI-Powered Prescription Generator
           </CardTitle>
           <Badge variant="secondary" className="bg-green-100 text-green-700">
             <Sparkles className="h-3 w-3 ml-1" />
@@ -256,7 +256,7 @@ export default function SmartTextForm({
               ) : (
                 <>
                   <Sparkles className="h-5 w-5" />
-                  <span>Generate Smart Prescription</span>
+                  <span>Generate AI Prescription</span>
                 </>
               )}
             </Button>
