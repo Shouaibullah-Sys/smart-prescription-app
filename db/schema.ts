@@ -63,6 +63,19 @@ export const prescriptions = pgTable("prescriptions", {
   // Additional Measurements
   bmi: text("bmi"),
 
+  // Comprehensive Body Metrics
+  waistCircumference: text("waist_circumference"),
+  hipCircumference: text("hip_circumference"),
+  bodyFatPercentage: text("body_fat_percentage"),
+  leanBodyMass: text("lean_body_mass"),
+  idealBodyWeight: text("ideal_body_weight"),
+  adjustedBodyWeight: text("adjusted_body_weight"),
+  basalMetabolicRate: text("basal_metabolic_rate"),
+  totalDailyEnergyExpenditure: text("total_daily_energy_expenditure"),
+  bodySurfaceArea: text("body_surface_area"),
+  waistToHeightRatio: text("waist_to_height_ratio"),
+  waterRequirement: text("water_requirement"),
+
   // Treatment Information
   instructions: text("instructions"),
   followUp: text("follow_up"),

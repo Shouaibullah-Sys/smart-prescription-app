@@ -36,6 +36,18 @@ export interface VoicePrescription {
   weight?: string;
   height?: string;
   bmi?: string;
+  // Comprehensive Body Metrics
+  waistCircumference?: string;
+  hipCircumference?: string;
+  bodyFatPercentage?: string;
+  leanBodyMass?: string;
+  idealBodyWeight?: string;
+  adjustedBodyWeight?: string;
+  basalMetabolicRate?: string;
+  totalDailyEnergyExpenditure?: string;
+  bodySurfaceArea?: string;
+  waistToHeightRatio?: string;
+  waterRequirement?: string;
   pulseRate?: string;
   bloodPressure?: string;
   temperature?: string;
@@ -58,6 +70,7 @@ export interface VoicePrescription {
   chiefComplaint?: string;
   pastMedicalHistory?: string;
   medicalTests?: string[];
+  followUp?: string; // Dedicated follow-up instructions field
   medicines: Medication[];
   doctorName: string;
   doctorLicenseNumber?: string;
@@ -210,6 +223,14 @@ export interface PDFConfig {
     showUnits: boolean;
   };
 
+  // Body Metrics
+  bodyMetrics: {
+    show: boolean;
+    include: string[];
+    showUnits: boolean;
+    compactMode: boolean;
+  };
+
   // Medications Table
   medications: {
     show: boolean;
@@ -340,7 +361,17 @@ export const defaultPDFConfig: PDFConfig = {
     columns: 4,
     showLabels: true,
     labelStyle: "bold",
-    include: ["name", "age", "gender", "date", "weight", "height", "bmi"],
+    include: [
+      "name",
+      "age",
+      "gender",
+      "date",
+      "weight",
+      "height",
+      "bmi",
+      "waist",
+      "bodyFat",
+    ],
   },
 
   clinicalHistory: {
@@ -378,6 +409,23 @@ export const defaultPDFConfig: PDFConfig = {
     },
     include: ["pulse", "bp", "temp", "respiratory", "oxygen"],
     showUnits: true,
+  },
+
+  bodyMetrics: {
+    show: true,
+    include: [
+      "waistCircumference",
+      "hipCircumference",
+      "bodyFatPercentage",
+      "leanBodyMass",
+      "idealBodyWeight",
+      "basalMetabolicRate",
+      "bodySurfaceArea",
+      "waistToHeightRatio",
+      "waterRequirement",
+    ],
+    showUnits: true,
+    compactMode: true,
   },
 
   medications: {
@@ -1042,34 +1090,16 @@ function calculateLeftColumnLayout(
     totalHeight += 160 + config.layout.sectionSpacing;
   }
 
-  if (
-    (prescription.medicalExams?.length || prescription.examNotes) &&
-    config.clinicalHistory.sections.labExams
-  ) {
-    // Create structured content for Lab Exams section
-    let labExamContent: any = {};
-
-    // Add medical exams as numbered list
-    if (prescription.medicalExams?.length) {
-      labExamContent.medicalExams = prescription.medicalExams;
-    }
-
-    // Add exam notes as separate section
-    if (prescription.examNotes) {
-      labExamContent.examNotes = prescription.examNotes;
-    }
-
+  // Add Diagnosis/Allergies section after System Examinations
+  if (prescription.allergies && config.clinicalHistory.sections.diagnosis) {
     sections.push({
-      title: "Lab Exams",
-      content: labExamContent,
-      height: config.layout.leftSectionHeights.labExams,
+      title: "DIAGNOSIS",
+      content: prescription.allergies,
+      height: config.layout.leftSectionHeights.diagnosis,
     });
     totalHeight +=
-      config.layout.leftSectionHeights.labExams + config.layout.sectionSpacing;
+      config.layout.leftSectionHeights.diagnosis + config.layout.sectionSpacing;
   }
-
-  // Note: Diagnosis section would be added here if prescription data included diagnosis
-  // For now, it's available in config but not populated from prescription data
 
   // Note: Diagnosis/Allergies section moved to right column
 
@@ -1288,9 +1318,21 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // DIAGNOSIS SECTION (Allergies)
-  if (prescription.allergies?.length) {
-    yRight = addDiagnosisSection(
+  // BODY METRICS SECTION
+  if (config.bodyMetrics.show && hasBodyMetrics(prescription)) {
+    yRight = addBodyMetricsSection(
+      doc,
+      yRight,
+      rightColumnX,
+      rightColumnWidth,
+      prescription,
+      config
+    );
+  }
+
+  // LAB EXAMS SECTION - Added before PRESCRIPTIONS with gradient 3-column layout
+  if (prescription.medicalExams?.length || prescription.examNotes) {
+    yRight = addLabExamsSection(
       doc,
       yRight,
       rightColumnX,
@@ -1372,6 +1414,18 @@ function createPatientInfoRows(
     bmi: {
       label: "BMI",
       value: prescription.bmi || "N/A",
+    },
+    waist: {
+      label: "Waist",
+      value: prescription.waistCircumference
+        ? `${prescription.waistCircumference} cm`
+        : "N/A",
+    },
+    bodyFat: {
+      label: "Body Fat",
+      value: prescription.bodyFatPercentage
+        ? `${prescription.bodyFatPercentage}%`
+        : "N/A",
     },
     address: {
       label: "Address",
@@ -1859,7 +1913,7 @@ function addFooter(
   const footerY = pageHeight - config.footer.height;
 
   // Show Follow Up information instead of digital note
-  if (prescription.familyHistory && prescription.familyHistory.trim()) {
+  if (prescription.followUp && prescription.followUp.trim()) {
     doc.setFontSize(config.typography.fontSizes.small);
     doc.setTextColor(...config.colors.primary);
 
@@ -1882,7 +1936,7 @@ function addFooter(
     // Draw follow up content
     doc.setFont(config.typography.defaultFont, "normal");
     const followUpLines = doc.splitTextToSize(
-      prescription.familyHistory,
+      prescription.followUp,
       pageWidth - 80 // Leave some margin on sides
     );
 
@@ -1922,6 +1976,175 @@ function hasVitalSigns(prescription: VoicePrescription): boolean {
   ].some((v) => v && v.trim() !== "");
 }
 
+function hasBodyMetrics(prescription: VoicePrescription): boolean {
+  return [
+    prescription.waistCircumference,
+    prescription.hipCircumference,
+    prescription.bodyFatPercentage,
+    prescription.leanBodyMass,
+    prescription.idealBodyWeight,
+    prescription.adjustedBodyWeight,
+    prescription.basalMetabolicRate,
+    prescription.totalDailyEnergyExpenditure,
+    prescription.bodySurfaceArea,
+    prescription.waistToHeightRatio,
+    prescription.waterRequirement,
+  ].some((v) => v && v.trim() !== "");
+}
+
+/**
+ * Add Body Metrics section to PDF
+ */
+function addBodyMetricsSection(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  // Section header
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y, 4, 16, "F");
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.heading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("BODY METRICS", x + 10, y + 11);
+
+  y += 22;
+
+  // Body metrics data
+  const bodyMetrics = [
+    {
+      key: "waistCircumference",
+      label: "Waist Circumference",
+      value: prescription.waistCircumference,
+      unit: "cm",
+    },
+    {
+      key: "hipCircumference",
+      label: "Hip Circumference",
+      value: prescription.hipCircumference,
+      unit: "cm",
+    },
+    {
+      key: "bodyFatPercentage",
+      label: "Body Fat Percentage",
+      value: prescription.bodyFatPercentage,
+      unit: "%",
+    },
+    {
+      key: "leanBodyMass",
+      label: "Lean Body Mass",
+      value: prescription.leanBodyMass,
+      unit: "kg",
+    },
+    {
+      key: "idealBodyWeight",
+      label: "Ideal Body Weight",
+      value: prescription.idealBodyWeight,
+      unit: "kg",
+    },
+    {
+      key: "adjustedBodyWeight",
+      label: "Adjusted Body Weight",
+      value: prescription.adjustedBodyWeight,
+      unit: "kg",
+    },
+    {
+      key: "basalMetabolicRate",
+      label: "Basal Metabolic Rate",
+      value: prescription.basalMetabolicRate,
+      unit: "kcal/day",
+    },
+    {
+      key: "totalDailyEnergyExpenditure",
+      label: "TDEE",
+      value: prescription.totalDailyEnergyExpenditure,
+      unit: "kcal/day",
+    },
+    {
+      key: "bodySurfaceArea",
+      label: "Body Surface Area",
+      value: prescription.bodySurfaceArea,
+      unit: "m²",
+    },
+    {
+      key: "waistToHeightRatio",
+      label: "Waist-to-Height Ratio",
+      value: prescription.waistToHeightRatio,
+      unit: "",
+    },
+    {
+      key: "waterRequirement",
+      label: "Daily Water Requirement",
+      value: prescription.waterRequirement,
+      unit: "ml",
+    },
+  ];
+
+  const filteredMetrics = bodyMetrics.filter(
+    (metric) => config.bodyMetrics.include.includes(metric.key) && metric.value
+  );
+
+  if (filteredMetrics.length === 0) {
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text("No body metrics recorded", x + 10, y);
+    return y + 15;
+  }
+
+  // Display metrics in a compact grid layout
+  const cols = config.bodyMetrics.compactMode ? 2 : 3;
+  const rows = Math.ceil(filteredMetrics.length / cols);
+  const cellWidth = (width - 20) / cols;
+  const cellHeight = 30;
+  const startX = x + 10;
+  const startY = y;
+
+  for (let i = 0; i < filteredMetrics.length; i++) {
+    const metric = filteredMetrics[i];
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const cellX = startX + col * cellWidth;
+    const cellY = startY + row * cellHeight;
+
+    // Background
+    doc.setFillColor(250, 250, 250);
+    doc.rect(cellX, cellY, cellWidth - 5, cellHeight - 5, "F");
+
+    // Border
+    doc.setDrawColor(...config.colors.border);
+    doc.setLineWidth(0.3);
+    doc.rect(cellX, cellY, cellWidth - 5, cellHeight - 5, "S");
+
+    // Label
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.tiny);
+    doc.setTextColor(...config.colors.primary);
+    doc.text(metric.label, cellX + 5, cellY + 8);
+
+    // Value
+    const valueText =
+      config.bodyMetrics.showUnits && metric.unit
+        ? `${metric.value} ${metric.unit}`.trim()
+        : metric.value!;
+
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+
+    const textWidth = doc.getTextWidth(valueText);
+    const centeredX = cellX + (cellWidth - 5 - textWidth) / 2;
+    doc.text(valueText, Math.max(centeredX, cellX + 5), cellY + 18);
+  }
+
+  y += rows * cellHeight + 10;
+  return y;
+}
+
 function hasSystemExaminations(prescription: VoicePrescription): boolean {
   const examinationFields = [
     prescription.cnsExamination,
@@ -1942,6 +2165,180 @@ function hasSystemExaminations(prescription: VoicePrescription): boolean {
       typeof value === "string" &&
       value.trim() !== ""
   );
+}
+
+/**
+ * Add Lab Exams section with gradient 3-column layout to right column
+ */
+function addLabExamsSection(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  if (!prescription.medicalExams?.length && !prescription.examNotes) {
+    return y; // No content, return same y position
+  }
+
+  // Section header
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y, 4, 16, "F");
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.heading);
+  doc.setTextColor(...config.colors.primary);
+  const persianTranslation = HEADER_TRANSLATIONS["Lab Exams"];
+  if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      "Lab Exams",
+      persianTranslation,
+      x + 10,
+      y + 11,
+      config
+    );
+  } else {
+    doc.text("Lab Exams", x + 10, y + 11);
+  }
+
+  y += 22;
+
+  const medicalExams = prescription.medicalExams || [];
+  const examNotes = prescription.examNotes;
+
+  if (medicalExams.length === 0 && !examNotes) {
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text("No lab exams recorded", x + 10, y);
+    return y + 15;
+  }
+
+  // 3-column gradient layout for lab exams
+  const cols = 3;
+  const columnGap = 8;
+  const cellWidth = (width - 20 - (cols - 1) * columnGap) / cols;
+  const cellHeight = 25; // Reduced height for each lab exam card (was 60)
+  const startX = x + 10;
+  const startY = y;
+
+  let currentY = startY;
+  let currentCol = 0;
+
+  // Create gradient colors for each column
+  const gradientColors: [number, number, number][] = [
+    [240, 248, 255], // Light Blue gradient start
+    [230, 255, 230], // Light Green gradient start
+    [255, 248, 220], // Light Orange gradient start
+  ];
+
+  const gradientColorsEnd: [number, number, number][] = [
+    [220, 235, 245], // Light Blue gradient end
+    [200, 245, 200], // Light Green gradient end
+    [245, 235, 200], // Light Orange gradient end
+  ];
+
+  // Render medical exams in 3-column layout
+  for (let i = 0; i < medicalExams.length; i++) {
+    const exam = medicalExams[i];
+    const cellX = startX + currentCol * (cellWidth + columnGap);
+    const cellY = currentY;
+
+    // Draw gradient background for each cell
+    doc.setFillColor(...gradientColors[currentCol]);
+    doc.rect(cellX, cellY, cellWidth, cellHeight, "F");
+
+    // Add subtle gradient border
+    doc.setDrawColor(...gradientColorsEnd[currentCol]);
+    doc.setLineWidth(0.5);
+    doc.rect(cellX, cellY, cellWidth, cellHeight, "S");
+
+    // Add left accent bar with different colors for each column
+    const accentColors: [number, number, number][] = [
+      [100, 149, 237], // Cornflower Blue
+      [60, 179, 113], // Medium Sea Green
+      [255, 140, 0], // Dark Orange
+    ];
+    doc.setFillColor(...accentColors[currentCol]);
+    doc.rect(cellX, cellY, 3, cellHeight, "F");
+
+    // Exam content
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.body);
+    doc.setTextColor(...config.colors.textDark);
+
+    // Split exam name into lines if too long
+    const examLines = doc.splitTextToSize(exam, cellWidth - 12);
+    const lineHeight =
+      config.typography.fontSizes.body * config.typography.lineHeights.normal;
+
+    let textY = cellY + 12;
+    for (let j = 0; j < Math.min(examLines.length, 3); j++) {
+      // Max 3 lines per exam
+      doc.text(examLines[j], cellX + 6, textY);
+      textY += lineHeight;
+    }
+
+    // Add exam number badge
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(255, 255, 255);
+
+    const badgeText = `${i + 1}`;
+    const badgeWidth = doc.getTextWidth(badgeText) + 6;
+    const badgeHeight = 12;
+    const badgeX = cellX + cellWidth - badgeWidth - 4;
+    const badgeY = cellY + 4;
+
+    // Badge background
+    doc.setFillColor(...accentColors[currentCol]);
+    doc.rect(badgeX, badgeY, badgeWidth, badgeHeight, "F");
+
+    // Badge text
+    doc.text(badgeText, badgeX + 3, badgeY + 8);
+
+    // Move to next column or row
+    currentCol++;
+    if (currentCol >= cols) {
+      currentCol = 0;
+      currentY += cellHeight + 6; // Gap between rows
+    }
+  }
+
+  // Update currentY if we have exams
+  if (medicalExams.length > 0) {
+    const rowsUsed = Math.ceil(medicalExams.length / cols);
+    currentY = startY + rowsUsed * cellHeight + (rowsUsed - 1) * 6;
+  }
+
+  // Add exam notes if present
+  if (examNotes) {
+    // Add spacing before exam notes
+    currentY += 10;
+
+    // Section title for notes
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.primary);
+    doc.text("Exam Notes:", x + 10, currentY);
+    currentY += 12;
+
+    // Notes content
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.body);
+    doc.setTextColor(...config.colors.textDark);
+
+    const notesLines = doc.splitTextToSize(examNotes, width - 20);
+    for (let i = 0; i < notesLines.length; i++) {
+      doc.text(notesLines[i], x + 10, currentY);
+      currentY +=
+        config.typography.fontSizes.body * config.typography.lineHeights.normal;
+    }
+  }
+
+  return currentY + 8; // Add some spacing after the section
 }
 
 // Export with the expected name for backward compatibility

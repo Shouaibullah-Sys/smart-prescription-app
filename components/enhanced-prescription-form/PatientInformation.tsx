@@ -24,6 +24,7 @@ import {
   Brain,
   Activity,
   Target,
+  Droplets,
 } from "lucide-react";
 import { Prescription } from "@/types/prescription";
 import {
@@ -32,6 +33,12 @@ import {
   calculateIdealBodyWeight,
   calculateBMR,
   calculateBodySurfaceArea,
+  calculateBodyFatPercentage,
+  calculateLeanBodyMass,
+  calculateWaistToHeightRatio,
+  calculateAdjustedBodyWeight,
+  calculateWaterRequirement,
+  calculateTDEE,
 } from "@/utils/calculations";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +58,9 @@ export function PatientInformation({
     | "patientGender"
     | "patientPhone"
     | "weight"
-    | "height";
+    | "height"
+    | "waistCircumference"
+    | "hipCircumference";
 
   // Create refs for all input fields
   const inputRefs = useRef({
@@ -60,6 +69,8 @@ export function PatientInformation({
     patientPhone: useRef<HTMLInputElement>(null),
     weight: useRef<HTMLInputElement>(null),
     height: useRef<HTMLInputElement>(null),
+    waistCircumference: useRef<HTMLInputElement>(null),
+    hipCircumference: useRef<HTMLInputElement>(null),
     patientGender: useRef<HTMLButtonElement>(null), // Select trigger ref
   });
 
@@ -71,6 +82,8 @@ export function PatientInformation({
     "patientPhone",
     "weight",
     "height",
+    "waistCircumference",
+    "hipCircumference",
   ];
 
   // State for validation and interactions
@@ -82,6 +95,9 @@ export function PatientInformation({
   >({});
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
+  const [activityLevel, setActivityLevel] = useState<
+    "sedentary" | "light" | "moderate" | "active" | "veryActive"
+  >("moderate");
 
   // Handle Enter key navigation with enhanced feedback
   const handleKeyDown = useCallback(
@@ -239,6 +255,78 @@ export function PatientInformation({
 
     const bmi = calculateBMI(prescription.weight, prescription.height);
     onUpdateField("bmi", bmi);
+
+    // Calculate comprehensive body metrics
+    if (prescription.patientAge && prescription.patientGender) {
+      // BMI-based calculations
+      const bodyFatPercentage = calculateBodyFatPercentage(
+        prescription.patientAge,
+        prescription.patientGender,
+        bmi
+      );
+      onUpdateField("bodyFatPercentage", bodyFatPercentage);
+
+      const leanBodyMass = calculateLeanBodyMass(
+        prescription.weight,
+        bodyFatPercentage
+      );
+      onUpdateField("leanBodyMass", leanBodyMass);
+
+      // BMR and TDEE calculations
+      const bmrData = calculateBMR(
+        prescription.weight,
+        prescription.height,
+        prescription.patientAge,
+        prescription.patientGender
+      );
+      onUpdateField("basalMetabolicRate", bmrData.average);
+
+      const tdee = calculateTDEE(bmrData.average, activityLevel);
+      onUpdateField("totalDailyEnergyExpenditure", tdee);
+    }
+
+    // Body composition calculations
+    if (prescription.waistCircumference) {
+      const waistToHeightRatio = calculateWaistToHeightRatio(
+        prescription.waistCircumference,
+        prescription.height
+      );
+      onUpdateField("waistToHeightRatio", waistToHeightRatio);
+    }
+
+    // Weight-related calculations
+    if (prescription.patientGender) {
+      const idealWeightData = calculateIdealBodyWeight(
+        prescription.height,
+        prescription.patientGender
+      );
+      onUpdateField("idealBodyWeight", idealWeightData.average);
+
+      const adjustedBodyWeight = calculateAdjustedBodyWeight(
+        prescription.weight,
+        prescription.height,
+        prescription.patientGender
+      );
+      onUpdateField("adjustedBodyWeight", adjustedBodyWeight);
+    }
+
+    // Surface area and hydration
+    const bsaData = calculateBodySurfaceArea(
+      prescription.weight,
+      prescription.height
+    );
+    onUpdateField("bodySurfaceArea", bsaData.average);
+
+    const waterRequirement = calculateWaterRequirement(
+      prescription.weight,
+      activityLevel === "veryActive"
+        ? "athlete"
+        : activityLevel === "active"
+        ? "active"
+        : "sedentary"
+    );
+    onUpdateField("waterRequirement", waterRequirement);
+
     setLastCalculated(new Date());
 
     // Clear metrics error
@@ -307,6 +395,51 @@ export function PatientInformation({
 
   const bsaValue = bsaData?.average || "";
 
+  // Additional calculated metrics
+  const bodyFatPercentage =
+    prescription.patientAge && prescription.patientGender && prescription.bmi
+      ? calculateBodyFatPercentage(
+          prescription.patientAge,
+          prescription.patientGender,
+          prescription.bmi
+        )
+      : "";
+
+  const leanBodyMassValue =
+    prescription.weight && bodyFatPercentage
+      ? calculateLeanBodyMass(prescription.weight, bodyFatPercentage)
+      : "";
+
+  const waistToHeightRatioValue =
+    prescription.waistCircumference && prescription.height
+      ? calculateWaistToHeightRatio(
+          prescription.waistCircumference,
+          prescription.height
+        )
+      : "";
+
+  const adjustedBodyWeightValue =
+    prescription.height && prescription.patientGender && prescription.weight
+      ? calculateAdjustedBodyWeight(
+          prescription.weight,
+          prescription.height,
+          prescription.patientGender
+        )
+      : "";
+
+  const tdeeValue = bmrValue ? calculateTDEE(bmrValue, activityLevel) : "";
+
+  const waterRequirementValue = prescription.weight
+    ? calculateWaterRequirement(
+        prescription.weight,
+        activityLevel === "veryActive"
+          ? "athlete"
+          : activityLevel === "active"
+          ? "active"
+          : "sedentary"
+      )
+    : "";
+
   // Check if all required fields are filled
   const isComplete =
     prescription.patientName &&
@@ -316,7 +449,16 @@ export function PatientInformation({
     prescription.height;
 
   // Check if we have any advanced metrics to show
-  const hasAdvancedMetrics = idealWeightValue || bmrValue || bsaValue;
+  const hasAdvancedMetrics =
+    idealWeightValue ||
+    bmrValue ||
+    bsaValue ||
+    bodyFatPercentage ||
+    leanBodyMassValue ||
+    waistToHeightRatioValue ||
+    adjustedBodyWeightValue ||
+    tdeeValue ||
+    waterRequirementValue;
 
   return (
     <div
@@ -751,6 +893,93 @@ export function PatientInformation({
                 </div>
               </div>
 
+              {/* Waist Circumference */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="waistCircumference"
+                  className="text-xs font-semibold flex items-center gap-2"
+                >
+                  <Ruler className="h-3.5 w-3.5 text-purple-500" />
+                  Waist Circumference (cm)
+                </Label>
+                <Input
+                  id="waistCircumference"
+                  ref={inputRefs.current.waistCircumference}
+                  type="number"
+                  min="30"
+                  max="200"
+                  step="0.1"
+                  value={prescription.waistCircumference || ""}
+                  onChange={(e) =>
+                    onUpdateField("waistCircumference", e.target.value)
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, "waistCircumference")}
+                  onFocus={() => setActiveSection("metrics")}
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  placeholder="e.g., 85.0"
+                />
+              </div>
+
+              {/* Hip Circumference */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="hipCircumference"
+                  className="text-xs font-semibold flex items-center gap-2"
+                >
+                  <Ruler className="h-3.5 w-3.5 text-purple-500" />
+                  Hip Circumference (cm)
+                </Label>
+                <Input
+                  id="hipCircumference"
+                  ref={inputRefs.current.hipCircumference}
+                  type="number"
+                  min="30"
+                  max="200"
+                  step="0.1"
+                  value={prescription.hipCircumference || ""}
+                  onChange={(e) =>
+                    onUpdateField("hipCircumference", e.target.value)
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, "hipCircumference")}
+                  onFocus={() => setActiveSection("metrics")}
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  placeholder="e.g., 95.0"
+                />
+              </div>
+
+              {/* Activity Level */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold flex items-center gap-2">
+                  <Activity className="h-3.5 w-3.5 text-purple-500" />
+                  Activity Level
+                </Label>
+                <Select
+                  value={activityLevel}
+                  onValueChange={(value: any) => setActivityLevel(value)}
+                >
+                  <SelectTrigger className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                    <SelectValue placeholder="Select activity level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sedentary" className="text-sm">
+                      Sedentary (little/no exercise)
+                    </SelectItem>
+                    <SelectItem value="light" className="text-sm">
+                      Light (1-3 days/week)
+                    </SelectItem>
+                    <SelectItem value="moderate" className="text-sm">
+                      Moderate (3-5 days/week)
+                    </SelectItem>
+                    <SelectItem value="active" className="text-sm">
+                      Active (6-7 days/week)
+                    </SelectItem>
+                    <SelectItem value="veryActive" className="text-sm">
+                      Very Active (physical job + exercise)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Calculate Button */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-transparent">
@@ -796,7 +1025,7 @@ export function PatientInformation({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {idealWeightValue && (
                     <div className="group p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-200 dark:border-green-800/30 hover:border-green-300 dark:hover:border-green-700 transition-all duration-300 hover:shadow-md">
                       <div className="flex items-center justify-between mb-2">
@@ -880,6 +1109,88 @@ export function PatientInformation({
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {bodyFatPercentage && (
+                    <div className="group p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border-2 border-amber-200 dark:border-amber-800/30 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-300 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Body Fat Percentage
+                        </div>
+                        <Target className="h-4 w-4 text-amber-500 dark:text-amber-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                        {bodyFatPercentage}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {leanBodyMassValue && (
+                    <div className="group p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl border-2 border-indigo-200 dark:border-indigo-800/30 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all duration-300 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Lean Body Mass
+                        </div>
+                        <Activity className="h-4 w-4 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                        {leanBodyMassValue}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          kg
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {waistToHeightRatioValue && (
+                    <div className="group p-4 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl border-2 border-teal-200 dark:border-teal-800/30 hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-300 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Waist-to-Height Ratio
+                        </div>
+                        <Target className="h-4 w-4 text-teal-500 dark:text-teal-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="text-xl font-bold text-teal-600 dark:text-teal-400">
+                        {waistToHeightRatioValue}
+                      </div>
+                    </div>
+                  )}
+
+                  {tdeeValue && (
+                    <div className="group p-4 bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border-2 border-rose-200 dark:border-rose-800/30 hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-300 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Total Daily Energy Expenditure
+                        </div>
+                        <Zap className="h-4 w-4 text-rose-500 dark:text-rose-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                        {tdeeValue}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          kcal/day
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {waterRequirementValue && (
+                    <div className="group p-4 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 rounded-xl border-2 border-sky-200 dark:border-sky-800/30 hover:border-sky-300 dark:hover:border-sky-700 transition-all duration-300 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Daily Water Requirement
+                        </div>
+                        <Droplets className="h-4 w-4 text-sky-500 dark:text-sky-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="text-xl font-bold text-sky-600 dark:text-sky-400">
+                        {waterRequirementValue}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          ml/day
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -305,27 +305,6 @@ export function MedicalHistory({
               </div>
             </div>
           </div>
-
-          {/* Medical History Categories */}
-          <div className="mt-3">
-            <div className="text-xs font-medium text-muted-foreground mb-2">
-              Common History Categories
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Heart className="h-3 w-3 text-red-400" />
-                <span>Cardiovascular (HTN, CAD, CHF)</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Activity className="h-3 w-3 text-green-400" />
-                <span>Endocrine (Diabetes, Thyroid)</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Syringe className="h-3 w-3 text-blue-400" />
-                <span>Immunizations & Allergies</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

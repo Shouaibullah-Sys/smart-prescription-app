@@ -74,6 +74,20 @@ export interface Prescription {
 
   // Additional Measurements
   bmi?: string | null;
+
+  // Comprehensive Body Metrics
+  waistCircumference?: string | null;
+  hipCircumference?: string | null;
+  bodyFatPercentage?: string | null;
+  leanBodyMass?: string | null;
+  idealBodyWeight?: string | null;
+  adjustedBodyWeight?: string | null;
+  basalMetabolicRate?: string | null;
+  totalDailyEnergyExpenditure?: string | null;
+  bodySurfaceArea?: string | null;
+  waistToHeightRatio?: string | null;
+  waterRequirement?: string | null;
+
   instructions?: string | null;
   followUp?: string | null;
   restrictions?: string | null;
