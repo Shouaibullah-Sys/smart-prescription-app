@@ -433,13 +433,12 @@ export const defaultPDFConfig: PDFConfig = {
     table: {
       headers: [
         "#",
-        "Medicine",
-        "Dosage",
+        "Medicine with Dosage", // Changed from separate Medicine and Dosage
         "Frequency",
         "Duration",
         "Instructions",
       ],
-      columnWidths: [15, 90, 60, 60, 60, 70], // Adjusted widths
+      columnWidths: [15, 120, 50, 50, 100], // Adjusted widths: more space for Instructions
       rowHeight: 22, // Increased row height to accommodate larger fonts
       stripedRows: true,
       showRowNumbers: true,
@@ -659,12 +658,46 @@ function getBilingualValue(
 
 /**
  * Get medication field with bilingual support
+ * Special handling for combined medicine-dosage field
  */
 function getMedicationField(
   medication: any,
   fieldName: string,
   config: PDFConfig
 ): string {
+  // Special case: if we want combined medicine-dosage
+  if (fieldName === "medicineWithDosage") {
+    const englishMedicine = medication.medicine || "";
+    const englishDosage = medication.dosage || "";
+    const persianMedicine = medication.medicinePersian || "";
+    const persianDosage = medication.dosagePersian || "";
+
+    if (config.language.showBothLanguages) {
+      const english =
+        englishMedicine && englishDosage
+          ? `${englishMedicine}-${englishDosage}`
+          : englishMedicine;
+      const persian =
+        persianMedicine && persianDosage
+          ? `${persianMedicine}-${persianDosage}`
+          : persianMedicine;
+
+      return english && persian
+        ? `${english} / ${persian}`
+        : english || persian;
+    }
+
+    if (config.language.primary === "english") {
+      return englishMedicine && englishDosage
+        ? `${englishMedicine}-${englishDosage}`
+        : englishMedicine || "";
+    }
+
+    return persianMedicine && persianDosage
+      ? `${persianMedicine}-${persianDosage}`
+      : persianMedicine || "";
+  }
+
   const englishValue = medication[fieldName];
   const persianValue = medication[`${fieldName}Persian`];
   return getBilingualValue(englishValue, persianValue, config);
@@ -1245,12 +1278,6 @@ function formatVitalValue(value?: string): string {
 }
 
 /**
- * Enhanced Patient Information Section with All Calculations
- */
-/**
- * Enhanced Patient Information Section - Matches PatientInformation.tsx design
- */
-/**
  * Enhanced Patient Information Section - 4 columns, no borders, like PatientInformation.tsx
  */
 function addEnhancedPatientInformation(
@@ -1818,8 +1845,6 @@ export async function generatePrescriptionPDF(
   }
 
   // ==================== ADD FOLLOW UP SECTION ====================
-  // THIS IS THE CRITICAL LINE THAT'S MISSING!
-  // Add Follow Up section after medications
   if (prescription.followUp && prescription.followUp.trim()) {
     yRight = addFollowUpSection(
       doc,
@@ -2019,7 +2044,7 @@ function addCompactVitalSigns(
         : vital.value!;
 
     doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.body); // Increased font size for vital sign values to make them more prominent
+    doc.setFontSize(config.typography.fontSizes.body);
     doc.setTextColor(...config.colors.textDark);
 
     const textWidth = doc.getTextWidth(valueText);
@@ -2074,7 +2099,7 @@ function addCompactMedicationsTable(
       doc.text("PRESCRIPTIONS", x + 10, y + 11);
     }
 
-    y += 28; // Increased spacing from 22 to 28 for consistency
+    y += 28;
 
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
@@ -2105,7 +2130,7 @@ function addCompactMedicationsTable(
     doc.text("PRESCRIPTIONS", x + 10, y + 11);
   }
 
-  y += 28; // Increased spacing from 22 to 28 for more space between title and table
+  y += 28;
 
   const headers = config.medications.table.headers;
   const columnWidths = config.medications.table.columnWidths;
@@ -2138,7 +2163,7 @@ function addCompactMedicationsTable(
   let rowCount = 0;
   const maxRowsOnFirstPage = config.medications.table.maxRowsOnFirstPage;
 
-  // Process medications with proper pagination
+  // Process medications with proper pagination and dynamic row height
   for (let i = 0; i < uniqueMedications.length; i++) {
     const med = uniqueMedications[i];
 
@@ -2161,56 +2186,104 @@ function addCompactMedicationsTable(
       y += 12;
     }
 
-    // Row background
-    if (config.medications.table.stripedRows && i % 2 === 0) {
-      doc.setFillColor(...config.colors.tableStriped);
-      doc.rect(
-        startX,
-        y - 5,
-        totalWidth,
-        config.medications.table.rowHeight,
-        "F"
-      );
-    }
-
-    // Row data
+    // Prepare row data
     const rowData = [
       config.medications.table.showRowNumbers ? `${i + 1}.` : "",
-      med.medicine || "N/A",
-      getMedicationField(med, "dosage", config),
+      getMedicationField(med, "medicineWithDosage", config), // Combined field
       getMedicationField(med, "frequency", config),
       getMedicationField(med, "duration", config),
       getMedicationField(med, "instructions", config),
     ];
 
-    xPos = startX;
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.body); // Increased font size for medication data
-    doc.setTextColor(...config.colors.textDark);
+    // Calculate maximum lines needed for this row across all columns
+    let maxLinesForRow = 1;
+    const linesPerColumn: string[][] = [];
 
+    // Set fonts for line calculation
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.body);
+
+    // Calculate lines for each column
     for (let j = 0; j < rowData.length; j++) {
       const padding = j === 0 ? 2 : 5;
-      const lines = doc.splitTextToSize(
-        rowData[j],
-        columnWidths[j] - padding * 2
-      );
+      const columnWidth = columnWidths[j] - padding * 2;
 
-      for (let k = 0; k < lines.length; k++) {
-        if (k === 0) {
-          doc.text(lines[k], xPos + padding, y + k * 8);
-        } else {
-          doc.text(lines[k], xPos + padding, y + k * 8 + 2);
-        }
+      // Use larger font for instructions column
+      if (j === 4) {
+        doc.setFontSize(config.typography.fontSizes.body + 1);
+      } else {
+        doc.setFontSize(config.typography.fontSizes.body);
       }
+
+      const lines = doc.splitTextToSize(rowData[j], columnWidth);
+      linesPerColumn.push(lines);
+      maxLinesForRow = Math.max(maxLinesForRow, lines.length);
+    }
+
+    // Calculate dynamic row height based on max lines
+    // Base line height for body font
+    const baseLineHeight =
+      config.typography.fontSizes.body * config.typography.lineHeights.normal;
+    const instructionLineHeight =
+      (config.typography.fontSizes.body + 1) *
+      config.typography.lineHeights.normal;
+
+    // Use the larger line height for calculations (instructions font is larger)
+    const lineHeight = Math.max(baseLineHeight, instructionLineHeight);
+    const dynamicRowHeight = Math.max(
+      config.medications.table.rowHeight, // Minimum row height
+      lineHeight * maxLinesForRow + 8 // Add padding
+    );
+
+    // Row background (if striped)
+    if (config.medications.table.stripedRows && i % 2 === 0) {
+      doc.setFillColor(...config.colors.tableStriped);
+      doc.rect(startX, y - 5, totalWidth, dynamicRowHeight, "F");
+    }
+
+    // Draw row border for better visibility
+    doc.setDrawColor(...config.colors.border);
+    doc.setLineWidth(0.2);
+    doc.rect(startX, y - 5, totalWidth, dynamicRowHeight, "S");
+
+    // Draw the content for each column
+    xPos = startX;
+    for (let j = 0; j < rowData.length; j++) {
+      const padding = j === 0 ? 2 : 5;
+      const columnWidth = columnWidths[j];
+      const lines = linesPerColumn[j];
+
+      // Set font for this column
+      doc.setFont(config.typography.defaultFont, "normal");
+      if (j === 4) {
+        doc.setFontSize(config.typography.fontSizes.body + 1); // Larger font for instructions
+      } else {
+        doc.setFontSize(config.typography.fontSizes.body);
+      }
+      doc.setTextColor(...config.colors.textDark);
+
+      // Calculate vertical center alignment for this column
+      const columnLineHeight = j === 4 ? instructionLineHeight : baseLineHeight;
+      const totalTextHeight = lines.length * columnLineHeight;
+      const verticalOffset = (dynamicRowHeight - totalTextHeight) / 2;
+
+      // Draw each line for this column
+      for (let k = 0; k < lines.length; k++) {
+        const lineY = y + verticalOffset + k * columnLineHeight;
+        doc.text(lines[k], xPos + padding, lineY);
+      }
+
       xPos += columnWidths[j];
     }
 
-    y += config.medications.table.rowHeight + 2;
+    // Update y position for next row
+    y += dynamicRowHeight + 2; // Add small gap between rows
     rowCount++;
   }
 
   return y + 10;
 }
+
 /**
  * Parse allergies text to array (same logic as MedicalHistory component)
  */
