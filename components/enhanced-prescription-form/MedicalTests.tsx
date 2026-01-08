@@ -84,10 +84,13 @@ export function MedicalTests({
         return;
       }
 
+      // Convert custom value to UPPERCASE
+      const uppercaseValue = customValue.trim().toUpperCase();
+
       // Create a custom test object
       const customTest: TestSuggestion = {
         id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-        name: customValue.trim(),
+        name: uppercaseValue, // Use uppercase value here
         category: ["Custom Test"],
         type: "Procedure",
         preparation: [],

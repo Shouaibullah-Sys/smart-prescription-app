@@ -613,7 +613,7 @@ export function PatientInformation({
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-500">
                 <ChevronRight className="h-3 w-3 mr-1" />
                 <span>
-                  Press{" "}
+                  Press
                   <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
                     Enter
                   </kbd>{" "}
@@ -674,7 +674,7 @@ export function PatientInformation({
                   onChange={(e) => onUpdateField("patientName", e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "patientName")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="Enter patient's full name"
                   required
                 />
@@ -699,7 +699,7 @@ export function PatientInformation({
                   onChange={(e) => onUpdateField("patientAge", e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "patientAge")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="e.g., 35"
                 />
               </div>
@@ -723,7 +723,7 @@ export function PatientInformation({
                     ref={inputRefs.current.patientGender}
                     id="patientGender"
                     onFocus={() => setActiveSection("personal")}
-                    className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
                     onKeyDown={(e) =>
                       handleKeyDown(e as React.KeyboardEvent, "patientGender")
                     }
@@ -778,7 +778,7 @@ export function PatientInformation({
                   }
                   onKeyDown={(e) => handleKeyDown(e, "patientPhone")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="09123456789"
                 />
               </div>
@@ -833,7 +833,7 @@ export function PatientInformation({
                   onChange={(e) => handleWeightChange(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "weight")}
                   onFocus={() => setActiveSection("metrics")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="e.g., 70.5"
                 />
                 {validationErrors.weight && (
@@ -863,7 +863,7 @@ export function PatientInformation({
                   onChange={(e) => handleHeightChange(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "height")}
                   onFocus={() => setActiveSection("metrics")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="e.g., 175.0"
                 />
                 {validationErrors.height && (
@@ -891,7 +891,7 @@ export function PatientInformation({
                         : ""
                     }
                     readOnly
-                    className="h-9 text-sm bg-gray-100/50 dark:bg-gray-800/50 border-purple-200 dark:border-purple-700 font-mono flex-1 cursor-default"
+                    className="h-9 text-sm bg-gray-100/50 dark:bg-gray-800/50 border-purple-200 dark:border-purple-700 font-mono flex-1 cursor-default text-gray-900 dark:text-gray-100"
                     placeholder="Auto-calculated"
                   />
                   {prescription.bmi && bmiCategory && (
@@ -931,7 +931,7 @@ export function PatientInformation({
                   }
                   onKeyDown={(e) => handleKeyDown(e, "waistCircumference")}
                   onFocus={() => setActiveSection("metrics")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="e.g., 85.0"
                 />
               </div>
@@ -958,7 +958,7 @@ export function PatientInformation({
                   }
                   onKeyDown={(e) => handleKeyDown(e, "hipCircumference")}
                   onFocus={() => setActiveSection("metrics")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="h-9 text-sm bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all text-gray-900 dark:text-gray-100"
                   placeholder="e.g., 95.0"
                 />
               </div>
