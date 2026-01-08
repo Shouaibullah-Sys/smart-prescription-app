@@ -342,11 +342,11 @@ export const defaultPDFConfig: PDFConfig = {
 
     // Fixed heights for left column sections (in points)
     leftSectionHeights: {
-      chiefComplaint: 50, // 50pt height
+      chiefComplaint: 80, // INCREASED from 50pt to 70pt (+20pt)
       medicalHistory: 70, // 70pt height
       pastMedicalHistory: 70, // 70pt height
       labExams: 120, // 120pt height (increased by 30px for more space)
-      diagnosis: 80, // Increased from 60pt to allow space for VITAL SIGNS below
+      diagnosis: 50, // DECREASED from 80pt to 60pt (-20pt)
       allergies: 60, // 40pt height
       familyHistory: 50, // 50pt height
       socialHistory: 50, // 50pt height
@@ -824,7 +824,22 @@ function drawFixedHeightSection(
     "System Examinations",
   ];
 
-  if (persianTranslation && verticalLayoutSections.includes(title)) {
+  // Check if this is one of the sections that should ONLY show English (no Persian)
+  const englishOnlySections = [
+    "History of the Chief Complain",
+    "Past Medical History",
+  ];
+
+  let titleEndY: number; // Declare the variable here
+
+  if (englishOnlySections.includes(title)) {
+    // Draw ONLY English title for these specific sections
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.setFontSize(config.typography.fontSizes.subheading);
+    doc.setTextColor(...config.colors.sectionHeader);
+    doc.text(title, x + padding.left + 5, y + padding.top + 8);
+    titleEndY = y + padding.top + 12; // Set the value
+  } else if (persianTranslation && verticalLayoutSections.includes(title)) {
     // Use vertical layout for these specific sections (Persian below English)
     const titleY = drawBilingualTextVertical(
       doc,
@@ -834,7 +849,13 @@ function drawFixedHeightSection(
       y + padding.top + 8,
       config
     );
+    // For vertical layout, calculate the Y position after both English and Persian
+    const lineHeight =
+      config.typography.fontSizes.subheading *
+      config.typography.lineHeights.normal;
+    titleEndY = y + padding.top + 8 + (lineHeight + 2) + lineHeight;
   } else if (persianTranslation) {
+    // Regular bilingual text (English and Persian side by side)
     drawBilingualText(
       doc,
       title,
@@ -843,33 +864,22 @@ function drawFixedHeightSection(
       y + padding.top + 8,
       config
     );
+    titleEndY = y + padding.top + 12; // Set the value
   } else {
+    // No Persian translation available
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.sectionHeader);
     doc.text(title, x + padding.left + 5, y + padding.top + 8);
+    titleEndY = y + padding.top + 12; // Set the value
   }
 
   // Draw a subtle divider under title
   doc.setDrawColor(...config.colors.divider);
   doc.setLineWidth(0.2);
-
-  // Calculate divider position based on whether we used vertical layout
-  let titleEndY;
-
-  if (persianTranslation && verticalLayoutSections.includes(title)) {
-    // For vertical layout, calculate the Y position after both English and Persian
-    const lineHeight =
-      config.typography.fontSizes.subheading *
-      config.typography.lineHeights.normal;
-    titleEndY = y + padding.top + 8 + (lineHeight + 2) + lineHeight;
-  } else {
-    // For horizontal layout, use the original position
-    titleEndY = y + padding.top + 12;
-  }
-
   doc.line(x + padding.left, titleEndY, x + width - padding.right, titleEndY);
 
+  // Rest of the function remains the same...
   // Content area
   const contentY = titleEndY + 5;
 
@@ -1162,6 +1172,9 @@ function collectSystemExaminations(
 /**
  * Calculate and guarantee all left sections fit on one page
  */
+/**
+ * Calculate and guarantee all left sections fit on one page
+ */
 function calculateLeftColumnLayout(
   prescription: VoicePrescription,
   config: PDFConfig
@@ -1184,7 +1197,7 @@ function calculateLeftColumnLayout(
     sections.push({
       title: "Chief Complaint",
       content: chiefComplaintContent,
-      height: config.layout.leftSectionHeights.chiefComplaint,
+      height: config.layout.leftSectionHeights.chiefComplaint, // Now 70pt
     });
     totalHeight +=
       config.layout.leftSectionHeights.chiefComplaint +
@@ -1192,12 +1205,12 @@ function calculateLeftColumnLayout(
   }
 
   if (
-    prescription.pastMedicalHistory &&
+    prescription.currentMedications &&
     config.clinicalHistory.sections.medicalHistory
   ) {
     sections.push({
       title: "History of the Chief Complain",
-      content: prescription.pastMedicalHistory,
+      content: prescription.currentMedications,
       height: config.layout.leftSectionHeights.medicalHistory,
     });
     totalHeight +=
@@ -1232,10 +1245,13 @@ function calculateLeftColumnLayout(
 
   // Add Diagnosis/Allergies section after System Examinations
   if (prescription.allergies && config.clinicalHistory.sections.diagnosis) {
+    // Parse allergies text to array
+    const allergiesContent = parseAllergiesText(prescription.allergies);
     sections.push({
       title: "DIAGNOSIS",
-      content: prescription.allergies,
-      height: config.layout.leftSectionHeights.diagnosis,
+      content:
+        allergiesContent.length > 0 ? allergiesContent : prescription.allergies,
+      height: config.layout.leftSectionHeights.diagnosis, // Now 60pt
     });
     totalHeight +=
       config.layout.leftSectionHeights.diagnosis + config.layout.sectionSpacing;

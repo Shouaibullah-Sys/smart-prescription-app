@@ -8,7 +8,6 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import PresetsTab from "./presets-tab";
 import ErrorAlert from "./ErrorAlert";
 import { EnhancedPrescriptionForm } from "./enhanced-prescription-form/enhanced-prescription-form";
-import { PrescriptionDetails } from "./prescription-details";
 import { PrescriptionAmount } from "./prescription-amount";
 import { Prescription } from "@/types/prescription";
 import { CyberpunkHeader } from "./CyberpunkHeader";
@@ -26,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import {
   History,
   Plus,
-  X,
   DollarSign,
   LogOut,
   User,
@@ -296,14 +294,11 @@ export default function DashboardClient({
   const [prescription, setPrescription] = useState<Prescription>(() =>
     createEmptyPrescription(user?.id)
   );
-  const [selectedPrescription, setSelectedPrescription] =
-    useState<Prescription | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "create" | "presets" | "history" | "amounts"
   >("create");
-  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const queryClient = useQueryClient();
@@ -377,14 +372,10 @@ export default function DashboardClient({
     setPrescription(createEmptyPrescription());
   };
 
-  const handleViewDetails = (prescription: Prescription) => {
-    setSelectedPrescription(prescription);
-    setDetailsOpen(true);
-  };
-
-  const handleCloseDetails = () => {
-    setDetailsOpen(false);
-    setSelectedPrescription(null);
+  const handleEditPrescription = (prescriptionToEdit: Prescription) => {
+    setPrescription(prescriptionToEdit);
+    setActiveTab("create");
+    setError(null);
   };
 
   const handleDeletePrescription = (prescriptionId: string) => {
@@ -407,7 +398,7 @@ export default function DashboardClient({
   const isDeleting = deleteMutation.isPending;
 
   const columns = useColumns({
-    onViewDetails: handleViewDetails,
+    onEdit: handleEditPrescription,
     onDelete: handleDeletePrescription,
   });
 
@@ -746,34 +737,6 @@ export default function DashboardClient({
             </CardContent>
           </Card>
         </div>
-        {/* Prescription Details Dialog */}
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between text-lg sm:text-xl">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  <span>جزئیات کامل نسخه</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCloseDetails}
-                  className="rounded-full h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </DialogTitle>
-            </DialogHeader>
-            {selectedPrescription && (
-              <PrescriptionDetails
-                prescription={selectedPrescription}
-                onClose={handleCloseDetails}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
         {/* Footer */}
         <footer className="mt-8 sm:mt-12 border-t bg-card">
           <div className="container px-4 py-6 sm:py-8">

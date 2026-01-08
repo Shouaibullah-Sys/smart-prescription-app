@@ -5,7 +5,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Prescription } from "../../types/prescription";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Calendar, User, Trash2 } from "lucide-react";
+import { Download, Edit, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { format as formatJalali } from "date-fns-jalali";
 import {
@@ -15,12 +15,12 @@ import {
 import { useState } from "react";
 
 interface ColumnsProps {
-  onViewDetails: (prescription: Prescription) => void;
+  onEdit: (prescription: Prescription) => void;
   onDelete: (prescriptionId: string) => void;
 }
 
 export const useColumns = ({
-  onViewDetails,
+  onEdit,
   onDelete,
 }: ColumnsProps): ColumnDef<Prescription>[] => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -67,8 +67,8 @@ export const useColumns = ({
       patientAge: prescription.patientAge || "",
       patientGender: prescription.patientGender || "",
       patientAddress: prescription.patientAddress || "",
-      allergies: prescription.allergies || [],
-      currentMedications: prescription.currentMedications || [],
+      allergies: prescription.allergies ?? null,
+      currentMedications: prescription.currentMedications ?? null,
       pastMedicalHistory: prescription.pastMedicalHistory || "",
       familyHistory: prescription.familyHistory || "",
       socialHistory: prescription.socialHistory || "",
@@ -77,7 +77,6 @@ export const useColumns = ({
       height: prescription.height || "",
       bmi: prescription.bmi || "",
       pulseRate: prescription.pulseRate || "",
-      heartRate: prescription.heartRate || "",
       bloodPressure: prescription.bloodPressure || "",
       temperature: prescription.temperature || "",
       respiratoryRate: prescription.respiratoryRate || "",
@@ -444,11 +443,11 @@ export const useColumns = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onViewDetails(prescription)}
+              onClick={() => onEdit(prescription)}
               className="flex items-center gap-1 h-8 px-3 text-xs sm:text-sm hover:bg-primary/10 hover:border-primary/20 transition-colors"
             >
-              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">جزئیات</span>
+              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Edit</span>
             </Button>
             <Button
               variant="outline"

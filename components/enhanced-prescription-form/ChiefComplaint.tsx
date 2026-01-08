@@ -84,6 +84,104 @@ export function ChiefComplaint({
   prescription,
   onUpdateField,
 }: ChiefComplaintProps) {
+  // Helper functions for extracting symptoms, duration, and severity
+  const extractSymptoms = useCallback((text: string): string[] => {
+    const symptomKeywords = [
+      "pain",
+      "fever",
+      "cough",
+      "headache",
+      "nausea",
+      "vomiting",
+      "diarrhea",
+      "fatigue",
+      "dizziness",
+      "shortness of breath",
+      "chest pain",
+      "abdominal pain",
+      "rash",
+      "swelling",
+      "bleeding",
+      "weight loss",
+      "palpitations",
+      "anxiety",
+      "chills",
+      "sweating",
+      "weakness",
+      "numbness",
+      "tingling",
+      "vision problems",
+      "hearing loss",
+      "sore throat",
+      "congestion",
+      "runny nose",
+      "joint pain",
+      "back pain",
+      "neck pain",
+      "constipation",
+      "indigestion",
+      "heartburn",
+    ];
+
+    return symptomKeywords.filter((keyword) =>
+      text.toLowerCase().includes(keyword)
+    );
+  }, []);
+
+  const extractDuration = useCallback((text: string): string => {
+    const durationPatterns = [
+      /(\d+)\s*(day|days)/i,
+      /(\d+)\s*(week|weeks)/i,
+      /(\d+)\s*(month|months)/i,
+      /(\d+)\s*(year|years)/i,
+      /for\s+(\d+)\s*(day|week|month|year)/i,
+      /since\s+(\d+)\s*(day|week|month|year)/i,
+      /(\d+)\s*(hour|hours)/i,
+      /(\d+)\s*(minute|minutes)/i,
+    ];
+
+    for (const pattern of durationPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return `${match[1]} ${match[2]}`;
+      }
+    }
+    return "";
+  }, []);
+
+  const extractSeverity = useCallback((text: string): string => {
+    const severeKeywords = [
+      "severe",
+      "acute",
+      "emergency",
+      "unbearable",
+      "intense",
+      "excruciating",
+    ];
+    const moderateKeywords = [
+      "moderate",
+      "intermittent",
+      "comes and goes",
+      "manageable",
+    ];
+    const mildKeywords = ["mild", "slight", "minor", "tolerable"];
+
+    if (
+      severeKeywords.some((keyword) => text.toLowerCase().includes(keyword))
+    ) {
+      return "Severe";
+    } else if (
+      moderateKeywords.some((keyword) => text.toLowerCase().includes(keyword))
+    ) {
+      return "Moderate";
+    } else if (
+      mildKeywords.some((keyword) => text.toLowerCase().includes(keyword))
+    ) {
+      return "Mild";
+    }
+    return "Not specified";
+  }, []);
+
   // Initialize complaints from prescription only once
   const [complaints, setComplaints] = useState<ComplaintItem[]>(() => {
     if (prescription.chiefComplaint && prescription.chiefComplaint.trim()) {
@@ -258,103 +356,6 @@ export function ChiefComplaint({
       }
     }
   }, [prescription.chiefComplaint]);
-
-  const extractSymptoms = useCallback((text: string): string[] => {
-    const symptomKeywords = [
-      "pain",
-      "fever",
-      "cough",
-      "headache",
-      "nausea",
-      "vomiting",
-      "diarrhea",
-      "fatigue",
-      "dizziness",
-      "shortness of breath",
-      "chest pain",
-      "abdominal pain",
-      "rash",
-      "swelling",
-      "bleeding",
-      "weight loss",
-      "palpitations",
-      "anxiety",
-      "chills",
-      "sweating",
-      "weakness",
-      "numbness",
-      "tingling",
-      "vision problems",
-      "hearing loss",
-      "sore throat",
-      "congestion",
-      "runny nose",
-      "joint pain",
-      "back pain",
-      "neck pain",
-      "constipation",
-      "indigestion",
-      "heartburn",
-    ];
-
-    return symptomKeywords.filter((keyword) =>
-      text.toLowerCase().includes(keyword)
-    );
-  }, []);
-
-  const extractDuration = useCallback((text: string): string => {
-    const durationPatterns = [
-      /(\d+)\s*(day|days)/i,
-      /(\d+)\s*(week|weeks)/i,
-      /(\d+)\s*(month|months)/i,
-      /(\d+)\s*(year|years)/i,
-      /for\s+(\d+)\s*(day|week|month|year)/i,
-      /since\s+(\d+)\s*(day|week|month|year)/i,
-      /(\d+)\s*(hour|hours)/i,
-      /(\d+)\s*(minute|minutes)/i,
-    ];
-
-    for (const pattern of durationPatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        return `${match[1]} ${match[2]}`;
-      }
-    }
-    return "";
-  }, []);
-
-  const extractSeverity = useCallback((text: string): string => {
-    const severeKeywords = [
-      "severe",
-      "acute",
-      "emergency",
-      "unbearable",
-      "intense",
-      "excruciating",
-    ];
-    const moderateKeywords = [
-      "moderate",
-      "intermittent",
-      "comes and goes",
-      "manageable",
-    ];
-    const mildKeywords = ["mild", "slight", "minor", "tolerable"];
-
-    if (
-      severeKeywords.some((keyword) => text.toLowerCase().includes(keyword))
-    ) {
-      return "Severe";
-    } else if (
-      moderateKeywords.some((keyword) => text.toLowerCase().includes(keyword))
-    ) {
-      return "Moderate";
-    } else if (
-      mildKeywords.some((keyword) => text.toLowerCase().includes(keyword))
-    ) {
-      return "Mild";
-    }
-    return "Not specified";
-  }, []);
 
   const handleAddComplaint = useCallback(() => {
     const text = currentInput.trim();
